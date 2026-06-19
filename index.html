@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>InsightDPS — Analisis Big Data Delay DPS &times; Cuaca BMKG</title>
+<title>LangitDPS — Analisis Big Data Delay DPS &times; Cuaca BMKG</title>
 <meta name="description" content="Dashboard analisis Big Data 8V: keterlambatan penerbangan Bandara I Gusti Ngurah Rai (DPS) dan hubungannya dengan kondisi cuaca BMKG, periode Maret 2025 - Mei 2026.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -110,9 +110,9 @@ nav.dark-mode .nav-links a.active{color:#fff;background:rgba(255,255,255,.14);}
 .hero-meta .hm{display:flex;flex-direction:column;}
 .hero-meta .hm .n{font-family:'Sora',sans-serif;font-weight:800;font-size:30px;line-height:1;}
 .hero-meta .hm .l{font-size:12px;color:rgba(255,255,255,.55);margin-top:7px;letter-spacing:.4px;}
-/* .scroll-cue{position:absolute;left:50%;bottom:26px;transform:translateX(-50%);z-index:3;color:rgba(255,255,255,.5);font-size:11px;letter-spacing:2px;text-transform:uppercase;text-align:center;}
+.scroll-cue{position:absolute;left:50%;bottom:26px;transform:translateX(-50%);z-index:3;color:rgba(255,255,255,.5);font-size:11px;letter-spacing:2px;text-transform:uppercase;text-align:center;}
 .scroll-cue .mouse{width:24px;height:38px;border:2px solid rgba(255,255,255,.35);border-radius:13px;margin:0 auto 9px;position:relative;}
-.scroll-cue .mouse::after{content:"";position:absolute;left:50%;top:7px;transform:translateX(-50%);width:4px;height:7px;border-radius:3px;background:rgba(255,255,255,.6);animation:wheel 1.6s infinite;} */
+.scroll-cue .mouse::after{content:"";position:absolute;left:50%;top:7px;transform:translateX(-50%);width:4px;height:7px;border-radius:3px;background:rgba(255,255,255,.6);animation:wheel 1.6s infinite;}
 @keyframes wheel{0%{opacity:0;top:7px;}40%{opacity:1;}80%{opacity:0;top:16px;}}
 
 /* ===== SECTION SHELL ===== */
@@ -306,14 +306,14 @@ footer .fcredit{font-size:12.5px;text-align:right;}
   <div class="nav-in">
     <a href="#hero" data-go="home" class="brand">
       <span class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19a3.5 3.5 0 0 0 .3-7 5 5 0 0 0-9.6-1.3A3.4 3.4 0 0 0 6.5 17"/><path d="M3.5 7.2 8 8.4l2.4-2.6a.8.8 0 0 1 1.3.8L10.6 9l3.6 1 1.3-1.4a.7.7 0 0 1 1.2.6l-.5 2.2"/></svg></span>
-      <span><span class="bt">InsightDPS</span><br><span class="bs">Delay &times; Cuaca BMKG</span></span>
+      <span><span class="bt">LangitDPS</span><br><span class="bs">Delay &times; Cuaca BMKG</span></span>
     </a>
     <div class="nav-links" id="navLinks">
       <a href="#overview" data-go="overview" class="active">Overview</a>
       <a href="#findings" data-go="findings">Temuan</a>
       <a href="#rawdata" data-go="rawdata">Data Mentah</a>
       <a href="#analysis8v" data-go="analysis8v">8V Analysis</a>
-      <a href="#Visualisasi" data-go="Visualisasi">Visualisasi</a>
+      <a href="#analytics" data-go="analytics">Analytics</a>
       <a href="#quality" data-go="quality">Kualitas Data</a>
       <a href="#conclusion" data-go="conclusion">Kesimpulan</a>
     </div>
@@ -360,7 +360,7 @@ footer .fcredit{font-size:12.5px;text-align:right;}
       <div class="hm"><span class="n serif">8V</span><span class="l">Dimensi Big Data</span></div>
     </div>
   </div>
-  <!-- <div class="scroll-cue"><div class="mouse"></div>Scroll</div> -->
+  <div class="scroll-cue"><div class="mouse"></div>Scroll</div>
 </header>
 
 <!-- OVERVIEW / KPI -->
@@ -543,9 +543,9 @@ footer .fcredit{font-size:12.5px;text-align:right;}
       <div class="vcard" style="--vc:#4ADE80">
         <div class="vico">&#128269;</div><div class="tag">Veracity</div><h3 class="serif">Seberapa dipercaya?</h3>
         <div class="q">Kualitas &amp; keterpercayaan</div>
-        <div class="metric">0 Missing</div>
-        <p>Tanpa missing value. <b>30 hari (6,6%)</b> curah hujannya hasil imputasi, ditandai eksplisit lewat flag <code>rr_imputed</code>.</p>
-        <div class="note">Imputasi didokumentasikan, bukan disembunyikan.</div>
+        <div class="metric">30 &rarr; 0</div>
+        <p>Data awal <b>tidak</b> sempurna: <b>30 entri curah hujan kosong</b> saat penggabungan. Seluruhnya <b>berhasil ditangani</b> lewat imputasi sehingga dataset final <b>0 missing value</b>, dan tiap hari hasil imputasi ditandai eksplisit lewat flag <code>rr_imputed</code>.</p>
+        <div class="note">Justru keterpercayaan datang dari penanganan yang transparan, bukan karena data kebetulan bersih.</div>
       </div>
       <div class="vcard" style="--vc:#FBBF24">
         <div class="vico">&#128142;</div><div class="tag">Value</div><h3 class="serif">Manfaat apa?</h3>
@@ -578,15 +578,15 @@ footer .fcredit{font-size:12.5px;text-align:right;}
     </div>
   </div>
 </section>
-<div class="page-foot"><button class="pnav prev" data-go="rawdata"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg><span><span class="pl">Sebelumnya</span>Data Mentah</span></button><button class="pnav next" data-go="Visualisasi"><span style="text-align:right"><span class="pl">Selanjutnya</span>Visualisasi</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></div>
+<div class="page-foot"><button class="pnav prev" data-go="rawdata"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg><span><span class="pl">Sebelumnya</span>Data Mentah</span></button><button class="pnav next" data-go="analytics"><span style="text-align:right"><span class="pl">Selanjutnya</span>Analytics</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></div>
 </div>
 
-<!-- Visualisasi -->
-<div class="page" id="page-Visualisasi">
-<section class="band alt" id="Visualisasi">
+<!-- ANALYTICS -->
+<div class="page" id="page-analytics">
+<section class="band alt" id="analytics">
   <div class="wrap">
     <div class="sec-head reveal">
-      <span class="kicker">Flight &amp; Weather Visualisasi</span>
+      <span class="kicker">Flight &amp; Weather Analytics</span>
       <h2 class="serif">Eksplorasi Visual Hubungan Delay &amp; Cuaca</h2>
       <p>Seluruh grafik analisis utama, masing-masing dengan narasi singkat. Arahkan kursor ke grafik untuk detail per titik.</p>
     </div>
@@ -678,7 +678,7 @@ footer .fcredit{font-size:12.5px;text-align:right;}
     </table>
   </div>
 </section>
-<div class="page-foot"><button class="pnav prev" data-go="Visualisasi"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg><span><span class="pl">Sebelumnya</span>Visualisasi</span></button><button class="pnav next" data-go="conclusion"><span style="text-align:right"><span class="pl">Selanjutnya</span>Kesimpulan</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></div>
+<div class="page-foot"><button class="pnav prev" data-go="analytics"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg><span><span class="pl">Sebelumnya</span>Analytics</span></button><button class="pnav next" data-go="conclusion"><span style="text-align:right"><span class="pl">Selanjutnya</span>Kesimpulan</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></div>
 </div>
 
 <!-- CONCLUSION -->
@@ -721,7 +721,7 @@ footer .fcredit{font-size:12.5px;text-align:right;}
 <footer>
   <div class="wrap foot-in">
     <div>
-      <div class="fbrand">Bandara Ngurah Rai</div>
+      <div class="fbrand">LangitDPS</div>
       <div class="fmeta" style="margin-top:8px;">Analisis Big Data 8V &middot; Delay DPS &times; Cuaca BMKG</div>
     </div>
     <div class="fmeta">
@@ -735,7 +735,7 @@ footer .fcredit{font-size:12.5px;text-align:right;}
       Sumber: flightera.net &amp; BMKG
     </div>
   </div>
-  <div class="wrap foot-bot">&copy; 2026 Bandara Ngurah Rai Dashboard &middot; Dibangun dengan HTML, CSS &amp; Chart.js &middot; Siap dipublikasikan di GitHub Pages</div>
+  <div class="wrap foot-bot">&copy; 2026 LangitDPS Dashboard &middot; Dibangun dengan HTML, CSS &amp; Chart.js &middot; Siap dipublikasikan di GitHub Pages</div>
 </footer>
 
 <script>
@@ -848,7 +848,7 @@ const nav=document.getElementById('nav');
 const hero=document.getElementById('hero');
 const navAs=[...document.querySelectorAll('.nav-links a')];
 const pages=[...document.querySelectorAll('.page')];
-const order=['overview','findings','rawdata','analysis8v','Visualisasi','quality','conclusion'];
+const order=['overview','findings','rawdata','analysis8v','analytics','quality','conclusion'];
 
 function setSolid(){ nav.classList.toggle('solid',window.scrollY>40); }
 window.addEventListener('scroll',setSolid,{passive:true});
