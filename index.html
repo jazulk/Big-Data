@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LangitDPS — Analisis Big Data Delay DPS &times; Cuaca BMKG</title>
+<meta name="description" content="Dashboard analisis Big Data 8V: keterlambatan penerbangan Bandara I Gusti Ngurah Rai (DPS) dan hubungannya dengan kondisi cuaca BMKG, periode Maret 2025 - Mei 2026.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --ink:#0A1426; --ink2:#122039; --paper:#F2F6FB; --paper2:#E7EFF7; --card:#FFFFFF;
+  --line:#D7E3F0; --line2:#E8F0F8;
+  --txt:#16243A; --muted:#516079; --soft:#8493A8;
+  --accent:#1E6FD9; --accent-d:#1657B0; --accent-l:#3B95F5; --accent-bg:#E8F1FD;
+  --sun:#F2890B; --sun-d:#D2730A; --sun-l:#FBA23A; --sun-bg:#FEF1E0;
+  --blue:#1E6FD9; --teal:#0E8C9B; --green:#138a5a; --amber:#C9760A; --purple:#6D49C7;
+  --orange:#E2640F; --gold:#B6850E;
+  --halo:rgba(59,149,245,.55);
+  --shadow:0 1px 3px rgba(16,36,64,.05),0 8px 24px rgba(16,36,64,.07);
+  --shadow-h:0 8px 18px rgba(16,36,64,.09),0 22px 48px rgba(16,36,64,.14);
+  --r:18px;
+}
+html{scroll-behavior:smooth;}
+body{background:var(--paper);color:var(--txt);font-family:'Inter',system-ui,sans-serif;line-height:1.65;-webkit-font-smoothing:antialiased;overflow-x:hidden;}
+.serif{font-family:'Sora',system-ui,sans-serif;}
+code{font-family:'JetBrains Mono',monospace;font-size:.86em;background:var(--paper2);padding:1px 6px;border-radius:5px;color:var(--accent-d);}
+a{color:inherit;text-decoration:none;}
+.wrap{max-width:1180px;margin:0 auto;padding:0 26px;}
+
+/* ===== NAV ===== */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;height:66px;display:flex;align-items:center;
+  background:rgba(244,241,236,0);transition:background .35s,box-shadow .35s,border-color .35s;border-bottom:1px solid transparent;}
+nav.solid{background:rgba(244,241,236,.92);backdrop-filter:blur(14px);box-shadow:0 1px 0 rgba(20,24,33,.05);border-bottom:1px solid var(--line);}
+nav.dark-mode{color:#fff;}
+.nav-in{max-width:1180px;margin:0 auto;padding:0 26px;width:100%;display:flex;align-items:center;justify-content:space-between;}
+.brand{display:flex;align-items:center;gap:11px;}
+.brand .logo{width:38px;height:38px;border-radius:11px;background:linear-gradient(140deg,var(--accent-l),var(--accent-d));
+  display:grid;place-items:center;box-shadow:0 6px 16px rgba(181,18,46,.4);flex-shrink:0;}
+.brand .logo svg{width:21px;height:21px;}
+.brand .bt{font-family:'Sora',sans-serif;font-weight:800;font-size:19px;letter-spacing:-.3px;line-height:1;}
+.brand .bs{font-size:9.5px;letter-spacing:1.8px;text-transform:uppercase;color:var(--soft);font-weight:600;margin-top:3px;}
+nav.dark-mode .brand .bs{color:rgba(255,255,255,.6);}
+.nav-links{display:flex;align-items:center;gap:4px;}
+.nav-links a{font-size:14px;font-weight:600;padding:8px 14px;border-radius:9px;color:var(--muted);transition:.18s;}
+nav.dark-mode .nav-links a{color:rgba(255,255,255,.78);}
+.nav-links a:hover{color:var(--accent);background:rgba(181,18,46,.07);}
+nav.dark-mode .nav-links a:hover{color:#fff;background:rgba(255,255,255,.1);}
+.nav-links a.active{color:var(--accent);background:var(--accent-bg);}
+nav.dark-mode .nav-links a.active{color:#fff;background:rgba(255,255,255,.14);}
+.nav-tag{font-size:12.5px;font-weight:700;padding:7px 15px;border-radius:30px;color:#fff;
+  background:linear-gradient(135deg,var(--accent-l),var(--accent-d));box-shadow:0 6px 16px rgba(181,18,46,.32);}
+.burger{display:none;background:none;border:0;cursor:pointer;padding:8px;color:inherit;}
+.burger svg{width:24px;height:24px;}
+
+/* ===== HERO ===== */
+.hero{position:relative;min-height:100vh;display:flex;align-items:center;background:var(--ink);color:#fff;overflow:hidden;}
+.hero::before{content:"";position:absolute;inset:0;
+  background:
+   radial-gradient(1100px 600px at 82% 88%,rgba(242,137,11,.34),transparent 58%),
+   radial-gradient(820px 560px at 70% 10%,rgba(59,149,245,.30),transparent 60%),
+   radial-gradient(600px 440px at 8% 22%,rgba(14,140,155,.18),transparent 64%),
+   linear-gradient(165deg,#081021 0%,#0C1A33 46%,#241433 100%);}
+/* lapisan awan lembut */
+.hero .clouds{position:absolute;inset:0;pointer-events:none;opacity:.6;
+  background:
+   radial-gradient(140px 60px at 18% 30%,rgba(255,255,255,.10),transparent 70%),
+   radial-gradient(180px 70px at 32% 26%,rgba(255,255,255,.08),transparent 72%),
+   radial-gradient(160px 64px at 75% 58%,rgba(255,255,255,.07),transparent 72%),
+   radial-gradient(120px 52px at 60% 74%,rgba(255,255,255,.06),transparent 72%);
+  animation:drift 26s linear infinite alternate;}
+@keyframes drift{from{transform:translateX(0);}to{transform:translateX(38px);}}
+.hero .grid-bg{position:absolute;inset:0;opacity:.4;
+  background-image:linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px);
+  background-size:60px 60px;mask-image:radial-gradient(circle at 64% 46%,#000 32%,transparent 86%);}
+/* bintang / titik observasi */
+.hero .stars{position:absolute;inset:0;pointer-events:none;
+  background-image:radial-gradient(1.4px 1.4px at 20% 22%,rgba(255,255,255,.5),transparent),
+   radial-gradient(1.2px 1.2px at 70% 16%,rgba(255,255,255,.4),transparent),
+   radial-gradient(1.3px 1.3px at 46% 12%,rgba(255,255,255,.45),transparent),
+   radial-gradient(1px 1px at 86% 34%,rgba(255,255,255,.35),transparent);}
+/* jejak penerbangan (flight path) + pesawat */
+.hero .flight{position:absolute;right:-30px;top:50%;transform:translateY(-50%);width:64%;max-width:780px;opacity:.95;pointer-events:none;}
+.hero .flight .path{fill:none;stroke:url(#fpgrad);stroke-width:2.4;stroke-linecap:round;stroke-dasharray:9 11;
+  filter:drop-shadow(0 0 8px var(--halo));stroke-dashoffset:2400;animation:draw 3.2s ease forwards .4s;}
+.hero .flight .arc{fill:none;stroke:rgba(255,255,255,.16);stroke-width:1.2;}
+.hero .flight .node{fill:var(--sun-l);filter:drop-shadow(0 0 6px rgba(251,162,58,.8));}
+.hero .flight .plane{fill:#fff;filter:drop-shadow(0 0 10px var(--halo));
+  opacity:0;animation:planeIn 1s ease forwards 3s;}
+@keyframes draw{to{stroke-dashoffset:0;}}
+@keyframes planeIn{to{opacity:1;}}
+.hero-in{position:relative;z-index:2;width:100%;padding:120px 0 90px;}
+.eyebrow{display:inline-flex;align-items:center;gap:9px;font-size:12.5px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;
+  color:#fff;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.16);padding:7px 16px;border-radius:30px;backdrop-filter:blur(6px);}
+.eyebrow .dot{width:8px;height:8px;border-radius:50%;background:var(--sun-l);box-shadow:0 0 10px var(--sun-l);animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.35;}}
+.hero h1{font-family:'Sora',sans-serif;font-weight:800;font-size:clamp(40px,7vw,80px);line-height:1.02;letter-spacing:-2px;margin:26px 0 0;max-width:15ch;}
+.hero h1 .hl{color:transparent;background:linear-gradient(110deg,var(--accent-l) 10%,var(--sun-l) 90%);-webkit-background-clip:text;background-clip:text;}
+.hero .lead{font-size:clamp(15px,1.7vw,18.5px);color:rgba(255,255,255,.72);max-width:60ch;margin-top:24px;font-weight:400;}
+.hero .ctas{display:flex;gap:14px;flex-wrap:wrap;margin-top:36px;}
+.btn{display:inline-flex;align-items:center;gap:9px;font-size:14.5px;font-weight:700;padding:13px 26px;border-radius:12px;cursor:pointer;border:1px solid transparent;transition:.2s;}
+.btn-primary{background:linear-gradient(135deg,var(--accent-l),var(--accent-d));color:#fff;box-shadow:0 10px 26px rgba(30,111,217,.42);}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 16px 34px rgba(30,111,217,.5);}
+.btn-ghost{background:rgba(255,255,255,.06);color:#fff;border-color:rgba(255,255,255,.2);backdrop-filter:blur(6px);}
+.btn-ghost:hover{background:rgba(255,255,255,.13);}
+.hero-meta{display:flex;gap:30px;flex-wrap:wrap;margin-top:54px;padding-top:30px;border-top:1px solid rgba(255,255,255,.12);}
+.hero-meta .hm{display:flex;flex-direction:column;}
+.hero-meta .hm .n{font-family:'Sora',sans-serif;font-weight:800;font-size:30px;line-height:1;}
+.hero-meta .hm .l{font-size:12px;color:rgba(255,255,255,.55);margin-top:7px;letter-spacing:.4px;}
+.scroll-cue{position:absolute;left:50%;bottom:26px;transform:translateX(-50%);z-index:3;color:rgba(255,255,255,.5);font-size:11px;letter-spacing:2px;text-transform:uppercase;text-align:center;}
+.scroll-cue .mouse{width:24px;height:38px;border:2px solid rgba(255,255,255,.35);border-radius:13px;margin:0 auto 9px;position:relative;}
+.scroll-cue .mouse::after{content:"";position:absolute;left:50%;top:7px;transform:translateX(-50%);width:4px;height:7px;border-radius:3px;background:rgba(255,255,255,.6);animation:wheel 1.6s infinite;}
+@keyframes wheel{0%{opacity:0;top:7px;}40%{opacity:1;}80%{opacity:0;top:16px;}}
+
+/* ===== SECTION SHELL ===== */
+.band{padding:88px 0;}
+.band.alt{background:var(--paper2);}
+.band.ink{background:linear-gradient(180deg,var(--accent-bg),var(--paper));}
+.sec-head{max-width:760px;margin-bottom:46px;}
+.sec-head.center{margin-left:auto;margin-right:auto;text-align:center;}
+.kicker{font-size:12.5px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--accent);}
+.band.ink .kicker{color:var(--accent);}
+.sec-head h2{font-family:'Sora',sans-serif;font-weight:800;font-size:clamp(28px,4vw,44px);line-height:1.05;letter-spacing:-.8px;margin:12px 0 0;}
+.sec-head p{font-size:16px;color:var(--muted);margin-top:16px;}
+.band.ink .sec-head p{color:var(--muted);}
+
+/* ===== KPI ===== */
+.kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:16px;margin-top:8px;}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:24px 22px;transition:.22s;position:relative;overflow:hidden;}
+.kpi::after{content:"";position:absolute;left:0;top:0;height:100%;width:4px;background:var(--accent);opacity:.85;}
+.kpi:hover{transform:translateY(-4px);box-shadow:var(--shadow-h);border-color:var(--line);}
+.kpi .ic{font-size:19px;}
+.kpi .v{font-family:'Sora',sans-serif;font-weight:800;font-size:34px;line-height:1;letter-spacing:-1px;margin-top:14px;}
+.kpi .l{font-size:12.5px;color:var(--muted);margin-top:8px;font-weight:500;line-height:1.4;}
+.kpi.b::after{background:var(--blue);} .kpi.r::after{background:var(--accent);}
+.kpi.g::after{background:var(--green);} .kpi.p::after{background:var(--purple);}
+.kpi.c::after{background:var(--teal);} .kpi.a::after{background:var(--amber);}
+.kpi.r .v{color:var(--accent);} .kpi.b .v{color:var(--blue);} .kpi.g .v{color:var(--green);}
+.kpi.p .v{color:var(--purple);} .kpi.c .v{color:var(--teal);} .kpi.a .v{color:var(--amber);}
+
+/* ===== KEY FINDINGS ===== */
+.finds{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;}
+.find{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:30px 28px;position:relative;transition:.22s;overflow:hidden;}
+.find::before{content:"";position:absolute;left:0;top:0;width:100%;height:5px;background:var(--accent);}
+.find.f2::before{background:var(--teal);} .find.f3::before{background:var(--sun);}
+.find:hover{transform:translateY(-5px);box-shadow:var(--shadow-h);}
+.find .fic{width:54px;height:54px;border-radius:15px;display:grid;place-items:center;font-size:26px;background:var(--accent-bg);margin-bottom:20px;}
+.find.f2 .fic{background:#E2F4F2;} .find.f3 .fic{background:var(--sun-bg);}
+.find h3{font-family:'Sora',sans-serif;font-weight:700;font-size:21px;letter-spacing:-.4px;}
+.find .big{font-family:'Sora',sans-serif;font-weight:800;font-size:40px;line-height:1;letter-spacing:-1px;color:var(--accent);margin:14px 0 12px;}
+.find.f2 .big{color:var(--teal);} .find.f3 .big{color:var(--sun-d);}
+.find p{font-size:14.5px;color:var(--muted);}
+.find p b{color:var(--txt);}
+
+/* ===== RAW DATA ===== */
+.raw-grid{display:grid;grid-template-columns:1fr 1fr;gap:26px;}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:30px 28px;box-shadow:var(--shadow);}
+.panel .ph{display:flex;align-items:center;gap:13px;margin-bottom:6px;}
+.panel .ph .pic{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;font-size:22px;flex-shrink:0;}
+.panel.air .ph .pic{background:#E7EEFD;} .panel.wx .ph .pic{background:#E4F4F1;}
+.panel .ph h3{font-family:'Sora',sans-serif;font-weight:700;font-size:21px;letter-spacing:-.4px;}
+.panel .ph .src{font-size:12px;color:var(--soft);font-weight:500;}
+.panel .pdesc{font-size:13.5px;color:var(--muted);margin:10px 0 22px;}
+.ministat{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:20px;}
+.ms{background:var(--paper);border:1px solid var(--line2);border-radius:12px;padding:14px 16px;}
+.ms .msv{font-family:'Sora',sans-serif;font-weight:800;font-size:23px;letter-spacing:-.5px;color:var(--txt);line-height:1;}
+.ms .msl{font-size:11.5px;color:var(--muted);margin-top:6px;}
+.ms.air .msv{color:var(--blue);} .ms.wx .msv{color:var(--teal);}
+.dtbl{width:100%;border-collapse:collapse;font-size:13px;margin-top:4px;}
+.dtbl th,.dtbl td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--line2);}
+.dtbl th{font-size:10.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--soft);font-weight:700;}
+.dtbl td:first-child{font-weight:600;}
+.dtbl td:not(:first-child){text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;}
+.dtbl tr:last-child td{border:none;}
+.mini-cv{position:relative;height:170px;margin-top:8px;}
+.callout{font-size:13px;color:var(--muted);background:var(--paper);border-left:3px solid var(--accent);border-radius:0 10px 10px 0;padding:13px 16px;margin-top:20px;}
+.band.ink .callout{background:var(--card);color:var(--muted);border-color:var(--accent);}
+
+/* integrasi table */
+.intg{margin-top:30px;overflow:hidden;border:1px solid var(--line);border-radius:var(--r);background:var(--card);box-shadow:var(--shadow);}
+.intg table{width:100%;border-collapse:collapse;font-size:13.5px;}
+.intg th,.intg td{padding:15px 20px;text-align:left;border-bottom:1px solid var(--line2);vertical-align:top;}
+.intg thead th{background:var(--ink);color:#fff;font-size:12px;text-transform:uppercase;letter-spacing:.6px;font-family:'Inter';}
+.intg thead th:first-child{font-family:'Sora';font-size:13px;text-transform:none;letter-spacing:0;}
+.intg td:first-child{font-weight:700;color:var(--txt);white-space:nowrap;width:170px;}
+.intg .cair{color:var(--blue);font-weight:600;}
+.intg .cwx{color:var(--teal);font-weight:600;}
+.intg tr:last-child td{border:none;}
+.intg tr:hover td{background:var(--paper);}
+
+/* ===== 8V ===== */
+.vgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;}
+.vcard{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:26px 24px;position:relative;overflow:hidden;transition:.25s;box-shadow:var(--shadow);}
+.vcard:hover{transform:translateY(-5px);box-shadow:var(--shadow-h);}
+.vcard::before{content:"";position:absolute;left:0;top:0;height:100%;width:4px;background:var(--vc,#fff);}
+.vcard .vico{width:46px;height:46px;border-radius:13px;display:grid;place-items:center;font-size:22px;background:var(--paper2);margin-bottom:16px;}
+.vcard .tag{font-size:11px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;color:var(--vc,#fff);}
+.vcard h3{font-family:'Sora',sans-serif;font-weight:700;font-size:18px;margin-top:4px;letter-spacing:-.3px;}
+.vcard .q{font-size:12px;color:var(--soft);font-style:italic;margin:6px 0 14px;}
+.vcard .metric{font-family:'Sora',sans-serif;font-weight:800;font-size:27px;letter-spacing:-.6px;color:var(--vc,#fff);margin-bottom:10px;}
+.vcard p{font-size:13px;color:var(--muted);}
+.vcard p b{color:var(--txt);}
+.vcard .note{font-size:11.5px;color:var(--soft);margin-top:13px;border-top:1px dashed var(--line);padding-top:11px;}
+.vcard.vul{background:var(--sun-bg);border-color:#F6D9AE;}
+
+/* ===== CHARTS ===== */
+.cgrid{display:grid;grid-template-columns:1fr 1fr;gap:22px;}
+.chartbox{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:26px;box-shadow:var(--shadow);}
+.chartbox.full{grid-column:1/-1;}
+.chartbox h4{font-family:'Sora',sans-serif;font-weight:700;font-size:18px;letter-spacing:-.3px;}
+.chartbox .cap{font-size:13px;color:var(--muted);margin:6px 0 16px;}
+.cv{position:relative;height:300px;}
+.cv.tall{height:340px;}
+.selector{display:inline-flex;gap:7px;margin-bottom:14px;flex-wrap:wrap;}
+.selector button{font-family:inherit;font-size:12px;font-weight:600;border:1px solid var(--line);background:var(--paper);color:var(--muted);padding:6px 13px;border-radius:20px;cursor:pointer;transition:.15s;}
+.selector button:hover{border-color:var(--accent);color:var(--accent);}
+.selector button.on{background:var(--accent);color:#fff;border-color:var(--accent);}
+.narr{font-size:13px;color:var(--muted);margin-top:14px;padding-top:14px;border-top:1px solid var(--line2);}
+.narr b{color:var(--txt);}
+
+/* ===== QUALITY ===== */
+.q-grid{display:grid;grid-template-columns:1fr 1fr;gap:26px;align-items:start;}
+.rules{display:grid;gap:11px;}
+.rule{display:flex;align-items:center;gap:14px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 18px;box-shadow:var(--shadow);}
+.rule .rname{flex:1;font-size:13.5px;font-weight:500;}
+.rule .rbar{width:110px;height:8px;background:var(--paper2);border-radius:5px;overflow:hidden;}
+.rule .rbar i{display:block;height:100%;background:var(--green);border-radius:5px;}
+.rule .rpct{font-weight:800;font-size:13.5px;color:var(--green);width:56px;text-align:right;font-family:'JetBrains Mono';}
+.vulnbox{background:var(--sun-bg);border:1px solid #F6D9AE;border-radius:var(--r);padding:28px;}
+.vulnbox h4{font-family:'Sora',sans-serif;color:var(--sun-d);font-size:19px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:9px;}
+.vulnbox .vsub{font-size:13px;color:var(--sun-d);opacity:.8;margin-bottom:16px;}
+.vrow{display:flex;gap:15px;padding:15px 0;border-bottom:1px solid #F6D9AE;}
+.vrow:last-child{border:none;padding-bottom:0;}
+.vrow .vn{width:30px;height:30px;border-radius:9px;background:var(--sun);color:#fff;font-weight:800;display:grid;place-items:center;flex-shrink:0;font-size:14px;font-family:'Sora';}
+.vrow .vtxt{font-size:13.5px;color:#7A4A06;}
+.vrow .vtxt b{color:var(--sun-d);}
+
+/* ===== TABLE ===== */
+.tbl{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;font-size:13.5px;box-shadow:var(--shadow);}
+.tbl th,.tbl td{padding:14px 18px;text-align:left;border-bottom:1px solid var(--line2);}
+.tbl th{background:var(--paper2);font-size:11.5px;text-transform:uppercase;letter-spacing:.5px;font-weight:700;color:var(--muted);}
+.tbl td:first-child{font-weight:700;}
+.tbl tr.vuln td:first-child{color:var(--accent);}
+.tbl tr:last-child td{border:none;}
+.tbl tr:hover td{background:var(--paper);}
+
+/* ===== CONCLUSION ===== */
+.concl{display:grid;grid-template-columns:1.1fr .9fr;gap:26px;}
+.ccard{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:32px 30px;box-shadow:var(--shadow);}
+.ccard h3{font-family:'Sora',sans-serif;font-weight:700;font-size:22px;margin-bottom:18px;letter-spacing:-.4px;}
+.ilist{list-style:none;display:grid;gap:15px;}
+.ilist li{display:flex;gap:13px;font-size:14.5px;color:var(--muted);}
+.ilist li .ck{color:var(--accent);flex-shrink:0;font-weight:800;margin-top:1px;}
+.ilist li b{color:var(--txt);}
+.rec-list{display:grid;gap:13px;}
+.rec{background:var(--paper);border:1px solid var(--line);border-radius:13px;padding:17px 20px;}
+.rec .rt{font-weight:700;font-size:14px;color:var(--txt);margin-bottom:4px;}
+.rec p{font-size:13px;color:var(--muted);}
+
+/* ===== FOOTER ===== */
+footer{background:#080A0E;color:rgba(255,255,255,.6);padding:54px 0 40px;}
+.foot-in{display:flex;justify-content:space-between;gap:30px;flex-wrap:wrap;align-items:flex-start;}
+footer .fbrand{font-family:'Sora',sans-serif;font-weight:800;font-size:20px;color:#fff;}
+footer .fmeta{font-size:13px;line-height:1.9;}
+footer .fmeta b{color:#fff;}
+footer .fcredit{font-size:12.5px;text-align:right;}
+.foot-bot{margin-top:34px;padding-top:24px;border-top:1px solid rgba(255,255,255,.1);font-size:12px;color:rgba(255,255,255,.4);text-align:center;}
+
+/* ===== PAGE SWITCHING ===== */
+.page{display:none;}
+.page.active{display:block;animation:pageIn .45s cubic-bezier(.2,.7,.3,1);}
+@keyframes pageIn{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:none;}}
+.page .band:first-child{padding-top:118px;}
+.page-foot{max-width:1180px;margin:0 auto;padding:0 26px 70px;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;}
+.pnav{display:inline-flex;align-items:center;gap:10px;font-size:14px;font-weight:700;padding:13px 22px;border-radius:12px;cursor:pointer;border:1px solid var(--line);background:var(--card);color:var(--txt);transition:.2s;box-shadow:var(--shadow);}
+.pnav:hover{border-color:var(--accent);color:var(--accent);transform:translateY(-2px);}
+.pnav.next{background:linear-gradient(135deg,var(--accent-l),var(--accent-d));color:#fff;border-color:transparent;box-shadow:0 8px 20px rgba(30,111,217,.32);}
+.pnav.next:hover{color:#fff;box-shadow:0 12px 26px rgba(30,111,217,.42);}
+.pnav .pl{font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;opacity:.65;display:block;}
+.pnav.next .pl{color:rgba(255,255,255,.8);}
+
+/* reveal */
+.reveal{opacity:0;transform:translateY(26px);transition:opacity .7s cubic-bezier(.2,.7,.3,1),transform .7s cubic-bezier(.2,.7,.3,1);}
+.reveal.in{opacity:1;transform:none;}
+
+@media(max-width:980px){
+  .kpis{grid-template-columns:repeat(3,1fr);} .finds{grid-template-columns:1fr;}
+  .raw-grid{grid-template-columns:1fr;} .vgrid{grid-template-columns:repeat(2,1fr);}
+  .cgrid{grid-template-columns:1fr;} .q-grid{grid-template-columns:1fr;} .concl{grid-template-columns:1fr;}
+}
+@media(max-width:640px){
+  .nav-links{display:none;} .burger{display:block;}
+  .kpis{grid-template-columns:repeat(2,1fr);} .vgrid{grid-template-columns:1fr;}
+  .ministat{grid-template-columns:1fr 1fr;} .band{padding:60px 0;}
+  .hero-meta{gap:22px;} .intg td:first-child{width:auto;}
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav id="nav" class="dark-mode">
+  <div class="nav-in">
+    <a href="#hero" data-go="home" class="brand">
+      <span class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19a3.5 3.5 0 0 0 .3-7 5 5 0 0 0-9.6-1.3A3.4 3.4 0 0 0 6.5 17"/><path d="M3.5 7.2 8 8.4l2.4-2.6a.8.8 0 0 1 1.3.8L10.6 9l3.6 1 1.3-1.4a.7.7 0 0 1 1.2.6l-.5 2.2"/></svg></span>
+      <span><span class="bt">LangitDPS</span><br><span class="bs">Delay &times; Cuaca BMKG</span></span>
+    </a>
+    <div class="nav-links" id="navLinks">
+      <a href="#overview" data-go="overview" class="active">Overview</a>
+      <a href="#findings" data-go="findings">Temuan</a>
+      <a href="#rawdata" data-go="rawdata">Data Mentah</a>
+      <a href="#analysis8v" data-go="analysis8v">8V Analysis</a>
+      <a href="#analytics" data-go="analytics">Analytics</a>
+      <a href="#quality" data-go="quality">Kualitas Data</a>
+      <a href="#conclusion" data-go="conclusion">Kesimpulan</a>
+    </div>
+    <span class="nav-tag">Kelompok Labubu</span>
+    <button class="burger" id="burger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
+  </div>
+</nav>
+
+<!-- HERO -->
+<header class="hero" id="hero">
+  <div class="stars"></div>
+  <div class="clouds"></div>
+  <div class="grid-bg"></div>
+  <svg class="flight" viewBox="0 0 800 320" preserveAspectRatio="xMidYMid meet">
+    <defs>
+      <linearGradient id="fpgrad" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="#3B95F5"/><stop offset="100%" stop-color="#FBA23A"/>
+      </linearGradient>
+    </defs>
+    <!-- busur lintasan -->
+    <path class="arc" d="M40,250 C220,40 560,40 760,210"/>
+    <!-- jejak penerbangan putus-putus -->
+    <path class="path" d="M40,250 C220,40 560,40 760,210"/>
+    <!-- node bandara -->
+    <circle class="node" cx="40" cy="250" r="6"/>
+    <circle class="node" cx="760" cy="210" r="6"/>
+    <!-- pesawat di ujung -->
+    <g class="plane" transform="translate(742,196) rotate(40) scale(1.5)">
+      <path d="M14 8.5 8.8 7.2 6 3.1a.7.7 0 0 0-1.2.5L5 6.6 1.8 5.8.7 4.2a.5.5 0 0 0-.8.5L1 8 0 9.3a.5.5 0 0 0 .5.7l1.8-.2 1.6 2.9a.7.7 0 0 0 1.3-.3l-.4-3.5 5.2-1.2a1.1 1.1 0 0 0 0-2.2Z" fill="#fff"/>
+    </g>
+  </svg>
+  <div class="wrap hero-in">
+    <span class="eyebrow"><span class="dot"></span> Analisis Big Data &middot; Penerbangan &amp; Meteorologi</span>
+    <h1 class="serif">Delay Bandara <span class="hl">Ngurah Rai</span> &amp; Cuaca BMKG</h1>
+    <p class="lead">Dashboard ini menyajikan analisis Big Data dengan kerangka 8V atas keterlambatan penerbangan Bandara I Gusti Ngurah Rai (DPS) dan hubungannya dengan kondisi cuaca BMKG, untuk membuktikan faktor apa yang sebenarnya paling menentukan delay sepanjang periode Maret 2025 &ndash; Mei 2026.</p>
+    <div class="ctas">
+      <a href="#findings" data-go="findings" class="btn btn-primary">Lihat Temuan Utama <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+      <a href="#analysis8v" data-go="analysis8v" class="btn btn-ghost">Kerangka 8V</a>
+    </div>
+    <div class="hero-meta">
+      <div class="hm"><span class="n serif">457</span><span class="l">Hari observasi</span></div>
+      <div class="hm"><span class="n serif">92.617</span><span class="l">Total penerbangan</span></div>
+      <div class="hm"><span class="n serif">46,9%</span><span class="l">Rata-rata delay</span></div>
+      <div class="hm"><span class="n serif">8V</span><span class="l">Dimensi Big Data</span></div>
+    </div>
+  </div>
+  <div class="scroll-cue"><div class="mouse"></div>Scroll</div>
+</header>
+
+<!-- OVERVIEW / KPI -->
+<div class="page" id="page-overview">
+<section class="band" id="overview">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="kicker">Ringkasan Eksekutif</span>
+      <h2 class="serif">Potret Singkat Dataset</h2>
+      <p>Enam metrik inti yang merangkum skala dan kualitas data analisis &mdash; gabungan operasional penerbangan DPS dan observasi cuaca BMKG yang sudah diringkas ke level harian.</p>
+    </div>
+    <div class="kpis reveal">
+      <div class="kpi b"><span class="ic">&#128197;</span><div class="v">457</div><div class="l">Hari (baris data)</div></div>
+      <div class="kpi a"><span class="ic">&#9992;&#65039;</span><div class="v">92.617</div><div class="l">Total penerbangan</div></div>
+      <div class="kpi r"><span class="ic">&#9201;&#65039;</span><div class="v">46,9%</div><div class="l">Rata-rata % delay</div></div>
+      <div class="kpi p"><span class="ic">&#128683;</span><div class="v">1.480</div><div class="l">Total dibatalkan</div></div>
+      <div class="kpi c"><span class="ic">&#128450;&#65039;</span><div class="v">21</div><div class="l">Kolom / fitur</div></div>
+      <div class="kpi g"><span class="ic">&#9989;</span><div class="v">0</div><div class="l">Missing value</div></div>
+    </div>
+  </div>
+</section>
+<div class="page-foot"><button class="pnav prev" data-go="home"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg><span><span class="pl">Kembali</span>Beranda</span></button><button class="pnav next" data-go="findings"><span style="text-align:right"><span class="pl">Selanjutnya</span>Temuan</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></div>
+</div>
+
+<!-- KEY FINDINGS -->
+<div class="page" id="page-findings">
+<section class="band alt" id="findings">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="kicker">Sorotan Utama (Key Findings)</span>
+      <h2 class="serif">Tiga Temuan Paling Krusial</h2>
+      <p>Wawasan terpenting dari hasil analisis korelasi dan tren atas 457 hari data penerbangan &times; cuaca.</p>
+    </div>
+    <div class="finds reveal">
+      <div class="find f1">
+        <div class="fic">&#128202;</div>
+        <h3 class="serif">Beban Operasional, Bukan Hujan</h3>
+        <div class="big">r = 0,39</div>
+        <p>Sinyal terkuat terhadap delay justru datang dari <b>volume penerbangan harian</b> (r=0,39), mengalahkan curah hujan yang nyaris tak berkorelasi (r=0,13). Padatnya jadwal lebih menentukan keterlambatan dibanding cuaca buruk.</p>
+      </div>
+      <div class="find f2">
+        <div class="fic">&#127777;&#65039;</div>
+        <h3 class="serif">Suhu Lebih Berbicara</h3>
+        <div class="big">r = &minus;0,37</div>
+        <p>Justru <b>suhu maksimum</b> (r=&minus;0,37) jadi variabel cuaca paling berhubungan: hari yang lebih sejuk &mdash; umumnya bermendung &amp; lembap &mdash; cenderung beririsan dengan delay yang lebih tinggi, bukan hujan deras itu sendiri.</p>
+      </div>
+      <div class="find f3">
+        <div class="fic">&#128200;</div>
+        <h3 class="serif">Puncak Delay Musim Kemarau</h3>
+        <div class="big">55,4%</div>
+        <p>Delay justru memuncak pada <b>Juli 2025 (55,4%)</b> di musim kemarau yang cerah, saat trafik padat. Maret 2025 jadi titik terendah (35,1%). Pola ini menegaskan: delay mengikuti beban operasional, bukan sekadar cuaca.</p>
+      </div>
+    </div>
+  </div>
+</section>
+<div class="page-foot"><button class="pnav prev" data-go="overview"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg><span><span class="pl">Sebelumnya</span>Overview</span></button><button class="pnav next" data-go="rawdata"><span style="text-align:right"><span class="pl">Selanjutnya</span>Data Mentah</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></div>
+</div>
+
+<!-- RAW DATA -->
+<div class="page" id="page-rawdata">
+<section class="band" id="rawdata">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="kicker">Kondisi Data Sebelum Integrasi</span>
+      <h2 class="serif">Data Mentah (Raw Data Overview)</h2>
+      <p>Sebelum digabung menjadi dataset analisis final, kedua sumber dibersihkan dan diringkas ke level harian. Berikut potret masing-masing data apa adanya.</p>
+    </div>
+
+    <div class="raw-grid reveal">
+      <!-- A. PENERBANGAN -->
+      <div class="panel air">
+        <div class="ph">
+          <span class="pic">&#9992;&#65039;</span>
+          <div><h3 class="serif">A. Data Penerbangan DPS</h3><span class="src">Sumber: flightera.net &middot; Bandara I Gusti Ngurah Rai</span></div>
+        </div>
+        <p class="pdesc">Catatan aktivitas penerbangan yang diagregasi menjadi ringkasan status per hari sepanjang Maret 2025 &ndash; Mei 2026.</p>
+        <div class="ministat">
+          <div class="ms air"><div class="msv">92.617</div><div class="msl">Total penerbangan</div></div>
+          <div class="ms air"><div class="msv">457</div><div class="msl">Hari (record harian)</div></div>
+          <div class="ms air"><div class="msv">10</div><div class="msl">Kolom awal</div></div>
+          <div class="ms air"><div class="msv">31,0 mnt</div><div class="msl">Rata-rata durasi delay</div></div>
+        </div>
+        <table class="dtbl">
+          <thead><tr><th>Status Penerbangan</th><th>Jumlah</th><th>Porsi</th></tr></thead>
+          <tbody>
+            <tr><td>Delay</td><td>43.144</td><td>46,6%</td></tr>
+            <tr><td>On time</td><td>40.368</td><td>43,6%</td></tr>
+            <tr><td>Early</td><td>7.625</td><td>8,2%</td></tr>
+            <tr><td>Dibatalkan</td><td>1.480</td><td>1,6%</td></tr>
+            <tr><td>Total beroperasi</td><td>91.137</td><td>98,4%</td></tr>
+          </tbody>
+        </table>
+        <div class="mini-cv"><canvas id="cRawAir"></canvas></div>
+        <div class="callout">Kondisi awal: data masih per aktivitas penerbangan, lalu diringkas menjadi jumlah &amp; persentase status (delay/on time/early/cancelled) untuk tiap tanggal sebelum agregasi harian final.</div>
+      </div>
+
+      <!-- B. CUACA -->
+      <div class="panel wx">
+        <div class="ph">
+          <span class="pic">&#127782;&#65039;</span>
+          <div><h3 class="serif">B. Data Cuaca BMKG</h3><span class="src">Sumber: BMKG Stasiun Meteorologi</span></div>
+        </div>
+        <p class="pdesc">Observasi harian unsur cuaca pada periode yang sama, mencakup suhu, kelembapan, hujan, angin, dan penyinaran.</p>
+        <div class="ministat">
+          <div class="ms wx"><div class="msv">457</div><div class="msl">Record harian</div></div>
+          <div class="ms wx"><div class="msv">11</div><div class="msl">Kolom cuaca</div></div>
+          <div class="ms wx"><div class="msv">30</div><div class="msl">Hari hujan diimputasi (6,6%)</div></div>
+          <div class="ms wx"><div class="msv">0</div><div class="msl">Missing value akhir</div></div>
+        </div>
+        <table class="dtbl">
+          <thead><tr><th>Variabel</th><th>Min</th><th>Rata</th><th>Max</th></tr></thead>
+          <tbody>
+            <tr><td>Suhu rata-rata (&deg;C)</td><td>24,3</td><td>27,6</td><td>30,4</td></tr>
+            <tr><td>Kelembapan (%)</td><td>65,0</td><td>80,3</td><td>95,0</td></tr>
+            <tr><td>Curah hujan (mm)</td><td>0,0</td><td>8,3</td><td>216,7</td></tr>
+            <tr><td>Angin maks (m/s)</td><td>3,0</td><td>5,9</td><td>15,0</td></tr>
+            <tr><td>Penyinaran (jam)</td><td>0,0</td><td>6,4</td><td>8,0</td></tr>
+          </tbody>
+        </table>
+        <div class="mini-cv"><canvas id="cRawWx"></canvas></div>
+        <div class="callout">Kondisi awal: sebagian curah hujan kosong dan diimputasi (<code>rr_imputed</code>), satu anomali entri <code>E;SE</code> pada arah angin dibersihkan, sebelum data layak diintegrasikan.</div>
+      </div>
+    </div>
+
+    <!-- C. INTEGRASI -->
+    <div class="sec-head reveal" style="margin-top:60px;margin-bottom:24px;">
+      <span class="kicker">C. Integrasi Dataset</span>
+      <h2 class="serif" style="font-size:clamp(22px,3vw,30px)">Menyatukan Dua Dunia: Operasional &amp; Meteorologi</h2>
+    </div>
+    <div class="intg reveal">
+      <table>
+        <thead><tr><th>Aspek</th><th>Data Penerbangan</th><th>Data Cuaca</th></tr></thead>
+        <tbody>
+          <tr><td>Sumber</td><td class="cair">flightera.net (DPS Ngurah Rai)</td><td class="cwx">BMKG Stasiun Meteorologi</td></tr>
+          <tr><td>Granularitas</td><td class="cair">Per aktivitas &rarr; ringkasan harian</td><td class="cwx">Observasi harian</td></tr>
+          <tr><td>Periode</td><td class="cair">Mar 2025 &ndash; Mei 2026</td><td class="cwx">Mar 2025 &ndash; Mei 2026</td></tr>
+          <tr><td>Record</td><td class="cair">92.617 penerbangan &rarr; 457 hari</td><td class="cwx">457 hari</td></tr>
+          <tr><td>Variabel utama</td><td class="cair">% delay, total_flight, cancelled</td><td class="cwx">suhu, hujan, kelembapan, angin</td></tr>
+          <tr><td>Permasalahan awal</td><td class="cair">Beda granularitas, perlu agregasi</td><td class="cwx">Hujan kosong &amp; anomali arah angin</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="callout reveal" style="margin-top:22px;">Data penerbangan awalnya berbasis aktivitas per penerbangan, sedangkan data cuaca berasal dari observasi harian BMKG. Keduanya kemudian disamakan ke <b>level harian</b>, lalu digabung berdasarkan tanggal untuk membentuk satu dataset analisis final berisi <b>457 baris &times; 21 kolom</b> tanpa missing value.</div>
+  </div>
+</section>
+<div class="page-foot"><button class="pnav prev" data-go="findings"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg><span><span class="pl">Sebelumnya</span>Temuan</span></button><button class="pnav next" data-go="analysis8v"><span style="text-align:right"><span class="pl">Selanjutnya</span>8V Analysis</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></div>
+</div>
+
+<!-- 8V ANALYSIS -->
+<div class="page" id="page-analysis8v">
+<section class="band ink" id="analysis8v">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="kicker">Kerangka Karakterisasi Data</span>
+      <h2 class="serif">Analisis 8V Big Data</h2>
+      <p>Dataset dikarakterisasi dari delapan dimensi &mdash; tiap "V" dibuktikan langsung dengan angka dari data DPS &times; BMKG, bukan sekadar definisi.</p>
+    </div>
+    <div class="vgrid reveal">
+      <div class="vcard" style="--vc:#60A5FA">
+        <div class="vico">&#128230;</div><div class="tag">Volume</div><h3 class="serif">Berapa banyak data?</h3>
+        <div class="q">Besar kuantitas data</div>
+        <div class="metric">457 &times; 21</div>
+        <p>457 baris harian meringkas <b>92.617 penerbangan</b> (&plusmn;203/hari). Tiap baris = ratusan penerbangan + pengamatan cuaca satu hari.</p>
+        <div class="note">Skala kecil&ndash;menengah, tapi sangat padat informasi.</div>
+      </div>
+      <div class="vcard" style="--vc:#22D3EE">
+        <div class="vico">&#9889;</div><div class="tag">Velocity</div><h3 class="serif">Secepat apa dihasilkan?</h3>
+        <div class="q">Kecepatan datangnya data</div>
+        <div class="metric">Batch Harian</div>
+        <p>Satu record baru tiap hari. Deret waktu <b>kontinu tanpa gap &amp; duplikat</b> &mdash; syarat penting agar analisis time-series valid.</p>
+        <div class="note">0 gap, 0 tanggal duplikat selama 457 hari.</div>
+      </div>
+      <div class="vcard" style="--vc:#A78BFA">
+        <div class="vico">&#127912;</div><div class="tag">Variety</div><h3 class="serif">Seberapa beragam?</h3>
+        <div class="q">Ragam tipe &amp; asal data</div>
+        <div class="metric">2 Domain</div>
+        <p>Memadukan <b>operasional penerbangan</b> (9 kolom) dan <b>meteorologi BMKG</b> (11 kolom): numerik, diskret, kategorikal, boolean, temporal.</p>
+        <div class="note">5 tipe data berbeda dalam satu tabel.</div>
+      </div>
+      <div class="vcard" style="--vc:#4ADE80">
+        <div class="vico">&#128269;</div><div class="tag">Veracity</div><h3 class="serif">Seberapa dipercaya?</h3>
+        <div class="q">Kualitas &amp; keterpercayaan</div>
+        <div class="metric">30 &rarr; 0</div>
+        <p>Data awal <b>tidak</b> sempurna: <b>30 entri curah hujan kosong</b> saat penggabungan. Seluruhnya <b>berhasil ditangani</b> lewat imputasi sehingga dataset final <b>0 missing value</b>, dan tiap hari hasil imputasi ditandai eksplisit lewat flag <code>rr_imputed</code>.</p>
+        <div class="note">Justru keterpercayaan datang dari penanganan yang transparan, bukan karena data kebetulan bersih.</div>
+      </div>
+      <div class="vcard" style="--vc:#FBBF24">
+        <div class="vico">&#128142;</div><div class="tag">Value</div><h3 class="serif">Manfaat apa?</h3>
+        <div class="q">Nilai yang bisa ditindaklanjuti</div>
+        <div class="metric">r = 0,39</div>
+        <p>Sinyal terkuat ke delay adalah <b>beban operasional</b> (r=0,39) &amp; <b>suhu</b> (r=&minus;0,37), bukan hujan (r=0,13). Berguna untuk antisipasi delay &amp; penjadwalan kru.</p>
+        <div class="note">Cuaca saja TIDAK cukup memprediksi delay.</div>
+      </div>
+      <div class="vcard" style="--vc:#FB923C">
+        <div class="vico">&#127754;</div><div class="tag">Variability</div><h3 class="serif">Seberapa fluktuatif?</h3>
+        <div class="q">Inkonsistensi nilai antar waktu</div>
+        <div class="metric">CV = 2,4</div>
+        <p>Curah hujan paling bergejolak (CV 2,4; skewness 4,5 &mdash; banyak hari kering, sesekali ekstrem hingga 216,7 mm). Delay bervariasi musiman.</p>
+        <div class="note">Variability &ne; Variety: ini soal fluktuasi nilai.</div>
+      </div>
+      <div class="vcard vul" style="--vc:#F87171">
+        <div class="vico">&#9888;&#65039;</div><div class="tag">Vulnerability</div><h3 class="serif">Di mana titik rapuh?</h3>
+        <div class="q">Risiko keamanan, privasi &amp; integritas</div>
+        <div class="metric">3 Titik Rawan</div>
+        <p>Data punya beberapa <b>kerentanan</b>: ketergantungan satu sumber, jejak anomali entri, dan risiko bila dipakai mentah. Detail di bawah.</p>
+        <div class="note">Pengganti dimensi "Validity" &mdash; fokus pada kerapuhan.</div>
+      </div>
+      <div class="vcard" style="--vc:#F472B6">
+        <div class="vico">&#128200;</div><div class="tag">Visualization</div><h3 class="serif">Bagaimana disajikan?</h3>
+        <div class="q">Jembatan data ke manusia</div>
+        <div class="metric">8 Panel</div>
+        <p>Dashboard ini sendiri adalah bukti dimensi Visualization: tren, beban, korelasi, distribusi, &amp; integritas disajikan interaktif.</p>
+        <div class="note">Lihat panel grafik di bawah.</div>
+      </div>
+    </div>
+  </div>
+</section>
+<div class="page-foot"><button class="pnav prev" data-go="rawdata"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg><span><span class="pl">Sebelumnya</span>Data Mentah</span></button><button class="pnav next" data-go="analytics"><span style="text-align:right"><span class="pl">Selanjutnya</span>Analytics</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></div>
+</div>
+
+<!-- ANALYTICS -->
+<div class="page" id="page-analytics">
+<section class="band alt" id="analytics">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="kicker">Flight &amp; Weather Analytics</span>
+      <h2 class="serif">Eksplorasi Visual Hubungan Delay &amp; Cuaca</h2>
+      <p>Seluruh grafik analisis utama, masing-masing dengan narasi singkat. Arahkan kursor ke grafik untuk detail per titik.</p>
+    </div>
+    <div class="cgrid reveal">
+      <div class="chartbox full">
+        <h4 class="serif">Tren % Delay Harian + Beban Operasional</h4>
+        <div class="cap">Velocity &amp; Variability &mdash; garis tebal = rata-rata 14 hari, garis tipis = % delay harian, batang = jumlah penerbangan/hari.</div>
+        <div class="cv"><canvas id="cTrend"></canvas></div>
+        <div class="narr"><b>Narasi:</b> Delay menanjak dari Maret 2025, memuncak di pertengahan 2025 saat trafik padat, lalu melandai. Pola ini mengikuti beban operasional, bukan musim hujan.</div>
+      </div>
+      <div class="chartbox full">
+        <h4 class="serif">Delay vs Volume Penerbangan per Bulan</h4>
+        <div class="cap">Value &mdash; garis = % delay, batang = rata-rata penerbangan/hari.</div>
+        <div class="cv"><canvas id="cCombo"></canvas></div>
+        <div class="narr"><b>Narasi:</b> Bulan dengan rata-rata penerbangan harian lebih tinggi cenderung beririsan dengan % delay yang lebih tinggi pula &mdash; menguatkan peran beban operasional.</div>
+      </div>
+      <div class="chartbox">
+        <h4 class="serif">Korelasi Fitur terhadap % Delay</h4>
+        <div class="cap">Value &mdash; merah = operasional, biru = cuaca. |r| &lt; 0,4 = sinyal lemah.</div>
+        <div class="cv"><canvas id="cCorr"></canvas></div>
+        <div class="narr"><b>Narasi:</b> total_flight memimpin (r=0,39); seluruh variabel cuaca berkorelasi lemah, hujan hanya r=0,13.</div>
+      </div>
+      <div class="chartbox">
+        <h4 class="serif">Delay menurut Intensitas Hujan</h4>
+        <div class="cap">Rata-rata % delay per kategori hujan BMKG.</div>
+        <div class="cv"><canvas id="cKatDelay"></canvas></div>
+        <div class="narr"><b>Narasi:</b> Delay relatif datar antar kategori hujan; hanya kelas "Lebat" sedikit menonjol (55,1%) &mdash; hujan bukan pemicu dominan.</div>
+      </div>
+      <div class="chartbox">
+        <h4 class="serif">Hubungan Cuaca vs % Delay</h4>
+        <div class="cap">Tiap titik = satu hari. Pilih variabel untuk melihat bentuk hubungannya.</div>
+        <div class="selector" id="scatSel">
+          <button data-k="ch" class="on">Curah hujan</button>
+          <button data-k="sa">Suhu rata-rata</button>
+          <button data-k="km">Kelembapan</button>
+          <button data-k="am">Angin maks</button>
+          <button data-k="tf">Total penerbangan</button>
+        </div>
+        <div class="cv" style="height:240px"><canvas id="cScatter"></canvas></div>
+      </div>
+      <div class="chartbox">
+        <h4 class="serif">Distribusi Kategori Hujan</h4>
+        <div class="cap">Variety &mdash; komposisi hari menurut intensitas hujan.</div>
+        <div class="cv"><canvas id="cKat"></canvas></div>
+        <div class="narr"><b>Narasi:</b> Mayoritas hari kering/sangat ringan (331 dari 457). Hari hujan ekstrem amat langka, sehingga pengaruhnya pada rata-rata kecil.</div>
+      </div>
+      <div class="chartbox full">
+        <h4 class="serif">Distribusi Arah Angin (sudah dibersihkan)</h4>
+        <div class="cap">Vulnerability &mdash; anomali <code>E;SE</code> digabung ke E setelah pembersihan data.</div>
+        <div class="cv" style="height:250px"><canvas id="cArah"></canvas></div>
+        <div class="narr"><b>Narasi:</b> Angin didominasi arah Tenggara, Barat, dan Timur &mdash; konsisten dengan pola monsun, tanpa kategori anomali setelah pembersihan.</div>
+      </div>
+    </div>
+  </div>
+</section>
+<div class="page-foot"><button class="pnav prev" data-go="analysis8v"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg><span><span class="pl">Sebelumnya</span>8V Analysis</span></button><button class="pnav next" data-go="quality"><span style="text-align:right"><span class="pl">Selanjutnya</span>Kualitas Data</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></div>
+</div>
+
+<!-- QUALITY -->
+<div class="page" id="page-quality">
+<section class="band" id="quality">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="kicker">Data Quality &amp; Vulnerability</span>
+      <h2 class="serif">Seberapa Kokoh Data Ini?</h2>
+      <p>Uji integritas logis menilai apakah nilai antar kolom konsisten, sementara analisis vulnerability menyoroti titik rapuh yang wajib diwaspadai sebelum data dipakai produksi.</p>
+    </div>
+    <div class="q-grid reveal">
+      <div>
+        <h4 class="serif" style="font-size:18px;margin-bottom:16px;">Uji Integritas Logis &mdash; 5 Aturan</h4>
+        <div class="rules" id="rulesBox"></div>
+        <div class="callout" style="margin-top:18px;">Hampir seluruh aturan validasi lolos 100% (hanya 1 baris meleset pada urutan suhu), menandakan konsistensi internal data sangat tinggi.</div>
+      </div>
+      <div class="vulnbox">
+        <h4 class="serif">&#9888;&#65039; 3 Kerentanan Utama Dataset</h4>
+        <div class="vsub">Pengganti dimensi Validity &mdash; fokus pada kerapuhan, bukan sekadar kebenaran logis.</div>
+        <div class="vrow"><div class="vn">1</div><div class="vtxt"><b>Ketergantungan sumber tunggal.</b> Seluruh data cuaca hanya dari <b>1 stasiun BMKG</b>. Bila stasiun error atau offline, tak ada cadangan &mdash; satu titik kegagalan yang membuat seluruh analisis cuaca rapuh.</div></div>
+        <div class="vrow"><div class="vn">2</div><div class="vtxt"><b>Jejak anomali entri.</b> Ditemukan nilai ganjil <code>E;SE</code> pada <code>arah_angin</code> &mdash; indikasi proses entri/penggabungan yang rapuh. Bila tak dibersihkan, kategori jadi tidak konsisten dan merusak encoding model.</div></div>
+        <div class="vrow"><div class="vn">3</div><div class="vtxt"><b>Risiko imputasi dianggap asli.</b> <b>30 hari (6,6%)</b> curah hujan hasil imputasi, bukan pengukuran nyata. Bila flag <code>rr_imputed</code> diabaikan, analisis bisa menyimpulkan dari angka buatan.</div></div>
+      </div>
+    </div>
+
+    <div class="sec-head reveal" style="margin-top:56px;margin-bottom:22px;">
+      <h2 class="serif" style="font-size:clamp(20px,3vw,26px)">Konteks: 5 Hari Paling Bermasalah</h2>
+    </div>
+    <table class="tbl reveal">
+      <thead><tr><th>Tanggal</th><th>% Delay</th><th>Total Penerbangan</th><th>Curah Hujan</th><th>Suhu Avg</th><th>Kategori Hujan</th></tr></thead>
+      <tbody id="worstBody"></tbody>
+    </table>
+  </div>
+</section>
+<div class="page-foot"><button class="pnav prev" data-go="analytics"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg><span><span class="pl">Sebelumnya</span>Analytics</span></button><button class="pnav next" data-go="conclusion"><span style="text-align:right"><span class="pl">Selanjutnya</span>Kesimpulan</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></div>
+</div>
+
+<!-- CONCLUSION -->
+<div class="page" id="page-conclusion">
+<section class="band ink" id="conclusion">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="kicker">Conclusion &amp; Insights</span>
+      <h2 class="serif">Kesimpulan &amp; Rekomendasi</h2>
+      <p>Rangkuman hasil analisis serta implikasi operasionalnya bagi pengelolaan jadwal dan penggunaan data ke depan.</p>
+    </div>
+    <div class="concl reveal">
+      <div class="ccard">
+        <h3 class="serif">Temuan Utama</h3>
+        <ul class="ilist">
+          <li><span class="ck">&#10003;</span><span><b>Beban operasional adalah penentu utama delay</b> (r=0,39), bukan cuaca. Hari padat penerbangan paling rawan terlambat.</span></li>
+          <li><span class="ck">&#10003;</span><span><b>Cuaca berperan lemah:</b> hanya suhu maksimum (r=&minus;0,37) yang cukup berbicara; curah hujan nyaris tak berkorelasi (r=0,13).</span></li>
+          <li><span class="ck">&#10003;</span><span><b>Delay memuncak di musim kemarau</b> (Juli 2025, 55,4%) saat trafik tinggi &mdash; menegaskan dominasi faktor operasional.</span></li>
+          <li><span class="ck">&#10003;</span><span><b>Kualitas data tinggi</b> (0 missing, validasi &asymp;100%), namun rapuh pada sumber tunggal &amp; data imputasi.</span></li>
+        </ul>
+      </div>
+      <div>
+        <div class="rec-list">
+          <div class="rec"><div class="rt">&#129518; Implikasi Operasional</div><p>Antisipasi delay sebaiknya berbasis prediksi beban trafik harian, bukan semata prakiraan hujan.</p></div>
+          <div class="rec"><div class="rt">&#128203; Penggunaan Data</div><p>Selalu hormati flag <code>rr_imputed</code> dan pisahkan hari imputasi saat menarik kesimpulan kuantitatif.</p></div>
+          <div class="rec"><div class="rt">&#128279; Penguatan Sumber</div><p>Tambahkan stasiun cuaca cadangan untuk mengurangi risiko single point of failure.</p></div>
+          <div class="rec"><div class="rt">&#128640; Lanjutan</div><p>Model prediksi delay dapat dibangun dengan fitur utama total_flight + suhu untuk akurasi praktis.</p></div>
+        </div>
+      </div>
+    </div>
+    <div class="callout reveal" style="margin-top:30px;border-color:var(--accent-l);">
+      <b style="color:#fff;">Kesimpulan singkat:</b> Keterlambatan penerbangan di Bandara Ngurah Rai lebih dipengaruhi <b style="color:#fff;">beban operasional harian</b> dibanding kondisi cuaca. Cuaca buruk berkontribusi, tetapi tidak dominan &mdash; sehingga strategi mitigasi delay yang paling efektif adalah manajemen kapasitas dan penjadwalan, didukung data cuaca sebagai pelengkap.
+    </div>
+  </div>
+</section>
+<div class="page-foot"><button class="pnav prev" data-go="quality"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg><span><span class="pl">Sebelumnya</span>Kualitas Data</span></button><button class="pnav next" data-go="home"><span style="text-align:right"><span class="pl">Selesai</span>Ke Beranda</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M3 12h3l2-7 4 14 2-5h7"/></svg></button></div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="wrap foot-in">
+    <div>
+      <div class="fbrand">LangitDPS</div>
+      <div class="fmeta" style="margin-top:8px;">Analisis Big Data 8V &middot; Delay DPS &times; Cuaca BMKG</div>
+    </div>
+    <div class="fmeta">
+      <b>457</b> hari observasi &middot; <b>92.617</b> penerbangan<br>
+      Periode Maret 2025 &ndash; Mei 2026<br>
+      Dimensi <b>Validity</b> diganti menjadi <b>Vulnerability</b>.
+    </div>
+    <div class="fcredit fmeta">
+      Dibuat oleh <b>Kelompok Labubu</b><br>
+      Sains Data &middot; UPN "Veteran" Jawa Timur<br>
+      Sumber: flightera.net &amp; BMKG
+    </div>
+  </div>
+  <div class="wrap foot-bot">&copy; 2026 LangitDPS Dashboard &middot; Dibangun dengan HTML, CSS &amp; Chart.js &middot; Siap dipublikasikan di GitHub Pages</div>
+</footer>
+
+<script>
+const DATA = {"daily": [{"t": "2025-03-01", "pd": 27.5, "ch": 11.4, "tf": 170, "sa": 28.0, "km": 81.0, "am": 4.0, "pj": 8.0, "imp": false, "kat": "Ringan"}, {"t": "2025-03-02", "pd": 11.9, "ch": 1.2, "tf": 43, "sa": 28.7, "km": 81.0, "am": 4.0, "pj": 8.0, "imp": false, "kat": "Sangat Ringan"}, {"t": "2025-03-03", "pd": 25.3, "ch": 0.0, "tf": 150, "sa": 28.6, "km": 77.0, "am": 4.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-03-04", "pd": 17.8, "ch": 1.7, "tf": 160, "sa": 28.5, "km": 79.0, "am": 4.0, "pj": 8.0, "imp": false, "kat": "Sangat Ringan"}, {"t": "2025-03-05", "pd": 19.4, "ch": 0.0, "tf": 171, "sa": 28.8, "km": 81.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-03-06", "pd": 17.4, "ch": 0.0, "tf": 173, "sa": 29.0, "km": 79.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-03-07", "pd": 18.1, "ch": 0.0, "tf": 186, "sa": 28.7, "km": 76.0, "am": 4.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-03-08", "pd": 49.7, "ch": 0.0, "tf": 173, "sa": 28.4, "km": 77.0, "am": 4.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-03-09", "pd": 29.8, "ch": 0.0, "tf": 189, "sa": 28.5, "km": 77.0, "am": 6.0, "pj": 7.4, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-03-10", "pd": 27.4, "ch": 3.2, "tf": 176, "sa": 28.0, "km": 77.0, "am": 5.0, "pj": 2.7, "imp": false, "kat": "Sangat Ringan"}, {"t": "2025-03-11", "pd": 22.4, "ch": 3.2, "tf": 166, "sa": 28.5, "km": 78.0, "am": 5.0, "pj": 7.2, "imp": true, "kat": "Sangat Ringan"}, {"t": "2025-03-12", "pd": 24.9, "ch": 0.0, "tf": 190, "sa": 28.4, "km": 76.0, "am": 6.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-03-13", "pd": 24.6, "ch": 3.6, "tf": 183, "sa": 28.8, "km": 79.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Sangat Ringan"}, {"t": "2025-03-14", "pd": 35.2, "ch": 0.0, "tf": 195, "sa": 28.8, "km": 78.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-03-15", "pd": 30.5, "ch": 1.5, "tf": 178, "sa": 28.3, "km": 79.0, "am": 4.0, "pj": 6.3, "imp": false, "kat": "Sangat Ringan"}, {"t": "2025-03-16", "pd": 33.0, "ch": 1.5, "tf": 192, "sa": 27.5, "km": 82.0, "am": 4.0, "pj": 0.5, "imp": true, "kat": "Sangat Ringan"}, {"t": "2025-03-17", "pd": 33.9, "ch": 17.6, "tf": 187, "sa": 28.3, "km": 78.0, "am": 5.0, "pj": 1.3, "imp": false, "kat": "Ringan"}, {"t": "2025-03-18", "pd": 25.5, "ch": 0.0, "tf": 173, "sa": 27.9, "km": 82.0, "am": 7.0, "pj": 6.3, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-03-19", "pd": 37.1, "ch": 31.1, "tf": 185, "sa": 24.4, "km": 92.0, "am": 7.0, "pj": 8.0, "imp": false, "kat": "Sedang"}, {"t": "2025-03-20", "pd": 46.2, "ch": 58.7, "tf": 184, "sa": 28.8, "km": 78.0, "am": 12.0, "pj": 0.0, "imp": false, "kat": "Lebat"}, {"t": "2025-03-21", "pd": 58.2, "ch": 45.0, "tf": 198, "sa": 25.3, "km": 93.0, "am": 7.0, "pj": 8.0, "imp": false, "kat": "Sedang"}, {"t": "2025-03-22", "pd": 48.6, "ch": 20.3, "tf": 191, "sa": 26.6, "km": 86.0, "am": 13.0, "pj": 0.0, "imp": false, "kat": "Sedang"}, {"t": "2025-03-23", "pd": 40.2, "ch": 19.3, "tf": 184, "sa": 28.7, "km": 74.0, "am": 13.0, "pj": 2.2, "imp": false, "kat": "Ringan"}, {"t": "2025-03-24", "pd": 46.0, "ch": 2.0, "tf": 188, "sa": 28.2, "km": 79.0, "am": 12.0, "pj": 3.0, "imp": false, "kat": "Sangat Ringan"}, {"t": "2025-03-25", "pd": 46.4, "ch": 7.0, "tf": 179, "sa": 29.0, "km": 75.0, "am": 7.0, "pj": 8.0, "imp": false, "kat": "Ringan"}, {"t": "2025-03-26", "pd": 48.7, "ch": 0.0, "tf": 199, "sa": 28.7, "km": 80.0, "am": 4.0, "pj": 5.3, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-03-27", "pd": 49.3, "ch": 0.0, "tf": 205, "sa": 27.8, "km": 83.0, "am": 3.0, "pj": 4.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-03-28", "pd": 53.1, "ch": 0.8, "tf": 213, "sa": 27.9, "km": 82.0, "am": 5.0, "pj": 2.7, "imp": false, "kat": "Sangat Ringan"}, {"t": "2025-03-29", "pd": 39.7, "ch": 12.6, "tf": 58, "sa": 27.3, "km": 83.0, "am": 8.0, "pj": 6.7, "imp": false, "kat": "Ringan"}, {"t": "2025-03-30", "pd": 54.9, "ch": 21.6, "tf": 185, "sa": 27.9, "km": 82.0, "am": 8.0, "pj": 6.6, "imp": false, "kat": "Sedang"}, {"t": "2025-03-31", "pd": 44.2, "ch": 3.8, "tf": 201, "sa": 28.9, "km": 77.0, "am": 5.0, "pj": 0.6, "imp": false, "kat": "Sangat Ringan"}, {"t": "2025-04-01", "pd": 43.2, "ch": 0.2, "tf": 193, "sa": 27.8, "km": 80.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Sangat Ringan"}, {"t": "2025-04-02", "pd": 36.7, "ch": 0.0, "tf": 200, "sa": 27.8, "km": 78.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-04-03", "pd": 46.0, "ch": 0.0, "tf": 198, "sa": 27.4, "km": 78.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-04-04", "pd": 50.9, "ch": 0.0, "tf": 212, "sa": 27.5, "km": 74.0, "am": 4.0, "pj": 7.6, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-04-05", "pd": 49.0, "ch": 0.0, "tf": 210, "sa": 26.5, "km": 71.0, "am": 4.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-04-06", "pd": 57.0, "ch": 0.0, "tf": 215, "sa": 27.3, "km": 75.0, "am": 4.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-04-07", "pd": 50.2, "ch": 0.0, "tf": 207, "sa": 27.7, "km": 77.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-04-08", "pd": 52.3, "ch": 5.8, "tf": 193, "sa": 28.2, "km": 82.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Ringan"}, {"t": "2025-04-09", "pd": 54.0, "ch": 59.5, "tf": 200, "sa": 27.8, "km": 85.0, "am": 4.0, "pj": 8.0, "imp": false, "kat": "Lebat"}, {"t": "2025-04-10", "pd": 49.2, "ch": 1.2, "tf": 200, "sa": 28.4, "km": 80.0, "am": 5.0, "pj": 5.2, "imp": false, "kat": "Sangat Ringan"}, {"t": "2025-04-11", "pd": 51.4, "ch": 54.3, "tf": 210, "sa": 26.9, "km": 82.0, "am": 7.0, "pj": 6.7, "imp": false, "kat": "Lebat"}, {"t": "2025-04-12", "pd": 35.6, "ch": 3.5, "tf": 202, "sa": 27.5, "km": 81.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Sangat Ringan"}, {"t": "2025-04-13", "pd": 52.4, "ch": 5.2, "tf": 210, "sa": 27.9, "km": 80.0, "am": 4.0, "pj": 8.0, "imp": false, "kat": "Ringan"}, {"t": "2025-04-14", "pd": 44.7, "ch": 0.7, "tf": 208, "sa": 27.3, "km": 81.0, "am": 4.0, "pj": 7.8, "imp": false, "kat": "Sangat Ringan"}, {"t": "2025-04-15", "pd": 38.0, "ch": 10.1, "tf": 199, "sa": 27.3, "km": 80.0, "am": 5.0, "pj": 5.5, "imp": false, "kat": "Ringan"}, {"t": "2025-04-16", "pd": 50.5, "ch": 0.0, "tf": 213, "sa": 27.8, "km": 80.0, "am": 6.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-04-17", "pd": 43.5, "ch": 3.2, "tf": 212, "sa": 28.3, "km": 80.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Sangat Ringan"}, {"t": "2025-04-18", "pd": 52.9, "ch": 0.0, "tf": 210, "sa": 29.0, "km": 80.0, "am": 6.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-04-19", "pd": 40.1, "ch": 1.8, "tf": 210, "sa": 28.0, "km": 82.0, "am": 5.0, "pj": 2.7, "imp": false, "kat": "Sangat Ringan"}, {"t": "2025-04-20", "pd": 56.7, "ch": 1.8, "tf": 215, "sa": 28.7, "km": 78.0, "am": 4.0, "pj": 8.0, "imp": true, "kat": "Sangat Ringan"}, {"t": "2025-04-21", "pd": 44.9, "ch": 0.0, "tf": 211, "sa": 27.8, "km": 78.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-04-22", "pd": 40.9, "ch": 0.0, "tf": 203, "sa": 27.9, "km": 76.0, "am": 3.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-04-23", "pd": 46.7, "ch": 0.0, "tf": 211, "sa": 26.6, "km": 77.0, "am": 6.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-04-24", "pd": 32.8, "ch": 0.0, "tf": 210, "sa": 27.0, "km": 77.0, "am": 4.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-04-25", "pd": 47.2, "ch": 0.0, "tf": 210, "sa": 28.2, "km": 80.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-04-26", "pd": 41.2, "ch": 0.0, "tf": 205, "sa": 28.2, "km": 75.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-04-27", "pd": 43.1, "ch": 5.5, "tf": 210, "sa": 26.9, "km": 76.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Ringan"}, {"t": "2025-04-28", "pd": 52.0, "ch": 13.5, "tf": 207, "sa": 26.5, "km": 79.0, "am": 4.0, "pj": 8.0, "imp": false, "kat": "Ringan"}, {"t": "2025-04-29", "pd": 36.5, "ch": 6.3, "tf": 200, "sa": 27.0, "km": 78.0, "am": 6.0, "pj": 8.0, "imp": false, "kat": "Ringan"}, {"t": "2025-04-30", "pd": 52.0, "ch": 2.3, "tf": 215, "sa": 27.3, "km": 78.0, "am": 13.0, "pj": 7.3, "imp": false, "kat": "Sangat Ringan"}, {"t": "2025-05-01", "pd": 48.0, "ch": 4.9, "tf": 208, "sa": 27.2, "km": 76.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Sangat Ringan"}, {"t": "2025-05-02", "pd": 51.8, "ch": 0.0, "tf": 211, "sa": 27.5, "km": 75.0, "am": 3.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-05-03", "pd": 38.5, "ch": 0.0, "tf": 204, "sa": 27.8, "km": 79.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-05-04", "pd": 54.8, "ch": 0.0, "tf": 210, "sa": 27.9, "km": 82.0, "am": 5.0, "pj": 6.7, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-05-05", "pd": 49.0, "ch": 0.0, "tf": 208, "sa": 28.5, "km": 82.0, "am": 7.0, "pj": 7.4, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-05-06", "pd": 44.4, "ch": 1.9, "tf": 202, "sa": 28.2, "km": 84.0, "am": 6.0, "pj": 8.0, "imp": false, "kat": "Sangat Ringan"}, {"t": "2025-05-07", "pd": 42.0, "ch": 12.9, "tf": 211, "sa": 27.8, "km": 84.0, "am": 4.0, "pj": 5.6, "imp": false, "kat": "Ringan"}, {"t": "2025-05-08", "pd": 45.0, "ch": 15.9, "tf": 203, "sa": 28.1, "km": 85.0, "am": 6.0, "pj": 3.9, "imp": false, "kat": "Ringan"}, {"t": "2025-05-09", "pd": 48.6, "ch": 1.7, "tf": 209, "sa": 27.6, "km": 81.0, "am": 4.0, "pj": 2.4, "imp": false, "kat": "Sangat Ringan"}, {"t": "2025-05-10", "pd": 48.3, "ch": 6.8, "tf": 206, "sa": 26.8, "km": 84.0, "am": 4.0, "pj": 3.1, "imp": false, "kat": "Ringan"}, {"t": "2025-05-11", "pd": 45.6, "ch": 0.5, "tf": 208, "sa": 27.5, "km": 82.0, "am": 3.0, "pj": 7.7, "imp": false, "kat": "Sangat Ringan"}, {"t": "2025-05-12", "pd": 56.2, "ch": 0.0, "tf": 209, "sa": 27.8, "km": 82.0, "am": 6.0, "pj": 6.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-05-13", "pd": 46.0, "ch": 1.7, "tf": 204, "sa": 27.5, "km": 84.0, "am": 6.0, "pj": 7.3, "imp": false, "kat": "Sangat Ringan"}, {"t": "2025-05-14", "pd": 46.5, "ch": 5.4, "tf": 209, "sa": 27.6, "km": 86.0, "am": 5.0, "pj": 6.6, "imp": false, "kat": "Ringan"}, {"t": "2025-05-15", "pd": 42.2, "ch": 5.4, "tf": 201, "sa": 27.6, "km": 82.0, "am": 4.0, "pj": 3.4, "imp": true, "kat": "Ringan"}, {"t": "2025-05-16", "pd": 46.6, "ch": 0.2, "tf": 208, "sa": 27.6, "km": 84.0, "am": 6.0, "pj": 6.1, "imp": false, "kat": "Sangat Ringan"}, {"t": "2025-05-17", "pd": 40.1, "ch": 29.1, "tf": 204, "sa": 28.4, "km": 77.0, "am": 6.0, "pj": 8.0, "imp": false, "kat": "Sedang"}, {"t": "2025-05-18", "pd": 44.9, "ch": 0.0, "tf": 210, "sa": 28.3, "km": 78.0, "am": 6.0, "pj": 5.5, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-05-19", "pd": 50.5, "ch": 0.0, "tf": 203, "sa": 28.2, "km": 77.0, "am": 6.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-05-20", "pd": 45.7, "ch": 0.0, "tf": 201, "sa": 28.5, "km": 76.0, "am": 6.0, "pj": 7.7, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-05-21", "pd": 43.4, "ch": 0.0, "tf": 205, "sa": 28.1, "km": 76.0, "am": 7.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-05-22", "pd": 39.8, "ch": 0.0, "tf": 204, "sa": 28.4, "km": 78.0, "am": 5.0, "pj": 6.3, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-05-23", "pd": 56.9, "ch": 11.6, "tf": 213, "sa": 27.2, "km": 86.0, "am": 5.0, "pj": 4.1, "imp": false, "kat": "Ringan"}, {"t": "2025-05-24", "pd": 40.9, "ch": 26.8, "tf": 204, "sa": 27.6, "km": 83.0, "am": 5.0, "pj": 2.9, "imp": false, "kat": "Sedang"}, {"t": "2025-05-25", "pd": 41.9, "ch": 3.2, "tf": 210, "sa": 27.8, "km": 84.0, "am": 6.0, "pj": 6.4, "imp": false, "kat": "Sangat Ringan"}, {"t": "2025-05-26", "pd": 52.1, "ch": 0.0, "tf": 207, "sa": 27.7, "km": 81.0, "am": 3.0, "pj": 6.7, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-05-27", "pd": 39.8, "ch": 0.0, "tf": 199, "sa": 27.5, "km": 84.0, "am": 8.0, "pj": 6.2, "imp": true, "kat": "Tidak Hujan"}, {"t": "2025-05-28", "pd": 52.0, "ch": 0.0, "tf": 209, "sa": 28.2, "km": 79.0, "am": 4.0, "pj": 7.3, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-05-29", "pd": 45.3, "ch": 0.0, "tf": 201, "sa": 28.1, "km": 78.0, "am": 4.0, "pj": 7.5, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-05-30", "pd": 50.5, "ch": 0.0, "tf": 210, "sa": 27.8, "km": 81.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-05-31", "pd": 49.2, "ch": 5.9, "tf": 204, "sa": 28.5, "km": 84.0, "am": 6.0, "pj": 8.0, "imp": false, "kat": "Ringan"}, {"t": "2025-06-01", "pd": 49.8, "ch": 12.4, "tf": 219, "sa": 28.7, "km": 77.0, "am": 4.0, "pj": 8.0, "imp": false, "kat": "Ringan"}, {"t": "2025-06-02", "pd": 49.7, "ch": 6.3, "tf": 208, "sa": 27.1, "km": 82.0, "am": 4.0, "pj": 8.0, "imp": false, "kat": "Ringan"}, {"t": "2025-06-03", "pd": 45.3, "ch": 6.3, "tf": 205, "sa": 28.0, "km": 80.0, "am": 5.0, "pj": 5.2, "imp": true, "kat": "Ringan"}, {"t": "2025-06-04", "pd": 48.5, "ch": 0.0, "tf": 215, "sa": 27.5, "km": 78.0, "am": 4.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-06-05", "pd": 47.7, "ch": 0.0, "tf": 210, "sa": 27.2, "km": 76.0, "am": 4.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-06-06", "pd": 52.7, "ch": 0.0, "tf": 215, "sa": 27.0, "km": 78.0, "am": 7.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-06-07", "pd": 44.7, "ch": 0.5, "tf": 205, "sa": 26.6, "km": 84.0, "am": 6.0, "pj": 8.0, "imp": false, "kat": "Sangat Ringan"}, {"t": "2025-06-08", "pd": 45.0, "ch": 14.6, "tf": 219, "sa": 28.3, "km": 77.0, "am": 6.0, "pj": 0.4, "imp": false, "kat": "Ringan"}, {"t": "2025-06-09", "pd": 54.0, "ch": 0.5, "tf": 210, "sa": 27.3, "km": 79.0, "am": 6.0, "pj": 6.1, "imp": false, "kat": "Sangat Ringan"}, {"t": "2025-06-10", "pd": 46.8, "ch": 1.3, "tf": 201, "sa": 28.5, "km": 75.0, "am": 6.0, "pj": 8.0, "imp": false, "kat": "Sangat Ringan"}, {"t": "2025-06-11", "pd": 48.7, "ch": 1.8, "tf": 213, "sa": 28.2, "km": 73.0, "am": 6.0, "pj": 6.8, "imp": false, "kat": "Sangat Ringan"}, {"t": "2025-06-12", "pd": 42.9, "ch": 0.0, "tf": 204, "sa": 27.4, "km": 76.0, "am": 6.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-06-13", "pd": 51.5, "ch": 0.0, "tf": 216, "sa": 28.4, "km": 80.0, "am": 6.0, "pj": 7.9, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-06-14", "pd": 48.0, "ch": 0.0, "tf": 207, "sa": 27.1, "km": 86.0, "am": 6.0, "pj": 7.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-06-15", "pd": 58.5, "ch": 23.0, "tf": 213, "sa": 27.2, "km": 84.0, "am": 5.0, "pj": 7.1, "imp": false, "kat": "Sedang"}, {"t": "2025-06-16", "pd": 55.1, "ch": 0.0, "tf": 211, "sa": 28.3, "km": 79.0, "am": 9.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-06-17", "pd": 44.1, "ch": 0.0, "tf": 193, "sa": 27.9, "km": 74.0, "am": 6.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-06-18", "pd": 52.0, "ch": 0.0, "tf": 205, "sa": 26.6, "km": 75.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-06-19", "pd": 64.2, "ch": 0.0, "tf": 205, "sa": 26.4, "km": 77.0, "am": 4.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-06-20", "pd": 66.5, "ch": 0.0, "tf": 209, "sa": 27.1, "km": 80.0, "am": 4.0, "pj": 4.7, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-06-21", "pd": 51.3, "ch": 0.0, "tf": 196, "sa": 27.2, "km": 82.0, "am": 5.0, "pj": 0.7, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-06-22", "pd": 61.8, "ch": 0.0, "tf": 209, "sa": 28.1, "km": 75.0, "am": 7.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-06-23", "pd": 63.4, "ch": 0.4, "tf": 204, "sa": 27.6, "km": 75.0, "am": 6.0, "pj": 8.0, "imp": false, "kat": "Sangat Ringan"}, {"t": "2025-06-24", "pd": 49.5, "ch": 0.0, "tf": 199, "sa": 27.4, "km": 72.0, "am": 6.0, "pj": 3.2, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-06-25", "pd": 67.3, "ch": 3.6, "tf": 209, "sa": 25.7, "km": 85.0, "am": 5.0, "pj": 3.6, "imp": false, "kat": "Sangat Ringan"}, {"t": "2025-06-26", "pd": 63.1, "ch": 80.0, "tf": 207, "sa": 26.0, "km": 87.0, "am": 6.0, "pj": 0.0, "imp": false, "kat": "Lebat"}, {"t": "2025-06-27", "pd": 60.4, "ch": 2.9, "tf": 212, "sa": 27.4, "km": 82.0, "am": 7.0, "pj": 3.7, "imp": false, "kat": "Sangat Ringan"}, {"t": "2025-06-28", "pd": 65.9, "ch": 0.0, "tf": 205, "sa": 27.3, "km": 79.0, "am": 7.0, "pj": 7.7, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-06-29", "pd": 60.9, "ch": 0.0, "tf": 220, "sa": 27.2, "km": 78.0, "am": 7.0, "pj": 6.8, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-06-30", "pd": 54.2, "ch": 0.0, "tf": 203, "sa": 27.1, "km": 76.0, "am": 6.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-07-01", "pd": 57.2, "ch": 0.0, "tf": 208, "sa": 26.8, "km": 81.0, "am": 6.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-07-02", "pd": 56.3, "ch": 0.0, "tf": 215, "sa": 27.3, "km": 81.0, "am": 6.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-07-03", "pd": 53.8, "ch": 0.0, "tf": 210, "sa": 27.2, "km": 77.0, "am": 6.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-07-04", "pd": 63.9, "ch": 0.0, "tf": 219, "sa": 26.6, "km": 75.0, "am": 5.0, "pj": 4.7, "imp": true, "kat": "Tidak Hujan"}, {"t": "2025-07-05", "pd": 53.2, "ch": 0.3, "tf": 205, "sa": 26.8, "km": 79.0, "am": 6.0, "pj": 1.0, "imp": false, "kat": "Sangat Ringan"}, {"t": "2025-07-06", "pd": 59.3, "ch": 0.3, "tf": 216, "sa": 27.7, "km": 80.0, "am": 8.0, "pj": 2.9, "imp": false, "kat": "Sangat Ringan"}, {"t": "2025-07-07", "pd": 58.6, "ch": 72.6, "tf": 210, "sa": 26.7, "km": 83.0, "am": 7.0, "pj": 7.0, "imp": false, "kat": "Lebat"}, {"t": "2025-07-08", "pd": 58.4, "ch": 0.0, "tf": 208, "sa": 27.0, "km": 74.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-07-09", "pd": 61.2, "ch": 0.0, "tf": 216, "sa": 26.4, "km": 72.0, "am": 4.0, "pj": 6.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-07-10", "pd": 53.1, "ch": 0.0, "tf": 210, "sa": 26.3, "km": 72.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-07-11", "pd": 58.3, "ch": 0.0, "tf": 217, "sa": 26.5, "km": 72.0, "am": 6.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-07-12", "pd": 51.2, "ch": 0.0, "tf": 206, "sa": 26.4, "km": 83.0, "am": 5.0, "pj": 5.3, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-07-13", "pd": 52.8, "ch": 0.0, "tf": 218, "sa": 27.0, "km": 81.0, "am": 6.0, "pj": 2.9, "imp": true, "kat": "Tidak Hujan"}, {"t": "2025-07-14", "pd": 60.2, "ch": 0.0, "tf": 206, "sa": 26.2, "km": 84.0, "am": 6.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-07-15", "pd": 54.0, "ch": 2.0, "tf": 201, "sa": 27.1, "km": 81.0, "am": 7.0, "pj": 5.0, "imp": false, "kat": "Sangat Ringan"}, {"t": "2025-07-16", "pd": 52.9, "ch": 0.0, "tf": 210, "sa": 26.8, "km": 75.0, "am": 6.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-07-17", "pd": 49.5, "ch": 0.0, "tf": 208, "sa": 26.6, "km": 72.0, "am": 11.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-07-18", "pd": 55.5, "ch": 0.0, "tf": 213, "sa": 25.3, "km": 76.0, "am": 4.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-07-19", "pd": 52.9, "ch": 0.0, "tf": 205, "sa": 24.3, "km": 76.0, "am": 4.0, "pj": 7.8, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-07-20", "pd": 51.7, "ch": 0.0, "tf": 214, "sa": 25.3, "km": 74.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-07-21", "pd": 51.9, "ch": 0.0, "tf": 209, "sa": 24.3, "km": 80.0, "am": 4.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-07-22", "pd": 48.0, "ch": 0.0, "tf": 203, "sa": 25.7, "km": 79.0, "am": 5.0, "pj": 5.2, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-07-23", "pd": 55.2, "ch": 0.0, "tf": 211, "sa": 26.0, "km": 79.0, "am": 6.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-07-24", "pd": 53.0, "ch": 0.0, "tf": 205, "sa": 27.4, "km": 78.0, "am": 4.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-07-25", "pd": 65.7, "ch": 0.0, "tf": 215, "sa": 26.9, "km": 82.0, "am": 6.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-07-26", "pd": 49.0, "ch": 1.5, "tf": 206, "sa": 27.2, "km": 82.0, "am": 5.0, "pj": 6.2, "imp": false, "kat": "Sangat Ringan"}, {"t": "2025-07-27", "pd": 60.4, "ch": 1.8, "tf": 218, "sa": 26.7, "km": 84.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Sangat Ringan"}, {"t": "2025-07-28", "pd": 60.3, "ch": 18.0, "tf": 211, "sa": 26.9, "km": 82.0, "am": 6.0, "pj": 8.0, "imp": false, "kat": "Ringan"}, {"t": "2025-07-29", "pd": 55.0, "ch": 0.0, "tf": 202, "sa": 26.3, "km": 78.0, "am": 7.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-07-30", "pd": 52.6, "ch": 0.0, "tf": 209, "sa": 25.5, "km": 81.0, "am": 6.0, "pj": 6.1, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-07-31", "pd": 53.2, "ch": 2.5, "tf": 204, "sa": 26.4, "km": 76.0, "am": 5.0, "pj": 1.9, "imp": false, "kat": "Sangat Ringan"}, {"t": "2025-08-01", "pd": 60.1, "ch": 0.4, "tf": 215, "sa": 26.9, "km": 78.0, "am": 6.0, "pj": 4.1, "imp": false, "kat": "Sangat Ringan"}, {"t": "2025-08-02", "pd": 52.3, "ch": 0.0, "tf": 198, "sa": 26.6, "km": 83.0, "am": 5.0, "pj": 5.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-08-03", "pd": 61.8, "ch": 0.0, "tf": 212, "sa": 27.3, "km": 83.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-08-04", "pd": 57.8, "ch": 0.0, "tf": 206, "sa": 27.5, "km": 79.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-08-05", "pd": 51.5, "ch": 0.0, "tf": 198, "sa": 27.1, "km": 76.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-08-06", "pd": 53.8, "ch": 0.0, "tf": 208, "sa": 26.7, "km": 70.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-08-07", "pd": 48.7, "ch": 0.0, "tf": 201, "sa": 25.2, "km": 77.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-08-08", "pd": 56.6, "ch": 0.0, "tf": 214, "sa": 27.1, "km": 77.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-08-09", "pd": 55.3, "ch": 0.0, "tf": 200, "sa": 27.6, "km": 77.0, "am": 5.0, "pj": 8.0, "imp": true, "kat": "Tidak Hujan"}, {"t": "2025-08-10", "pd": 50.9, "ch": 0.0, "tf": 214, "sa": 27.4, "km": 77.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-08-11", "pd": 53.4, "ch": 0.0, "tf": 206, "sa": 27.3, "km": 77.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-08-12", "pd": 46.7, "ch": 0.0, "tf": 197, "sa": 26.9, "km": 77.0, "am": 6.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-08-13", "pd": 55.3, "ch": 0.0, "tf": 209, "sa": 25.9, "km": 76.0, "am": 6.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-08-14", "pd": 49.0, "ch": 0.0, "tf": 203, "sa": 26.5, "km": 69.0, "am": 6.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-08-15", "pd": 61.0, "ch": 0.0, "tf": 214, "sa": 26.5, "km": 74.0, "am": 6.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-08-16", "pd": 55.1, "ch": 3.4, "tf": 197, "sa": 26.9, "km": 75.0, "am": 6.0, "pj": 8.0, "imp": false, "kat": "Sangat Ringan"}, {"t": "2025-08-17", "pd": 45.0, "ch": 0.0, "tf": 212, "sa": 26.2, "km": 75.0, "am": 6.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-08-18", "pd": 56.5, "ch": 0.0, "tf": 207, "sa": 27.3, "km": 79.0, "am": 6.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-08-19", "pd": 55.2, "ch": 0.0, "tf": 201, "sa": 27.5, "km": 80.0, "am": 6.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-08-20", "pd": 56.5, "ch": 2.5, "tf": 207, "sa": 26.6, "km": 80.0, "am": 5.0, "pj": 5.9, "imp": false, "kat": "Sangat Ringan"}, {"t": "2025-08-21", "pd": 55.9, "ch": 0.0, "tf": 206, "sa": 27.2, "km": 73.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-08-22", "pd": 50.9, "ch": 0.0, "tf": 214, "sa": 25.7, "km": 76.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-08-23", "pd": 50.5, "ch": 0.0, "tf": 200, "sa": 25.9, "km": 75.0, "am": 4.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-08-24", "pd": 55.8, "ch": 0.0, "tf": 215, "sa": 26.3, "km": 77.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-08-25", "pd": 58.8, "ch": 0.0, "tf": 213, "sa": 26.1, "km": 76.0, "am": 4.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-08-26", "pd": 42.8, "ch": 0.0, "tf": 204, "sa": 27.2, "km": 70.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-08-27", "pd": 47.8, "ch": 1.0, "tf": 212, "sa": 26.4, "km": 76.0, "am": 7.0, "pj": 8.0, "imp": false, "kat": "Sangat Ringan"}, {"t": "2025-08-28", "pd": 53.7, "ch": 0.0, "tf": 207, "sa": 26.5, "km": 74.0, "am": 5.0, "pj": 6.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-08-29", "pd": 56.3, "ch": 0.4, "tf": 218, "sa": 26.4, "km": 74.0, "am": 5.0, "pj": 7.2, "imp": false, "kat": "Sangat Ringan"}, {"t": "2025-08-30", "pd": 51.8, "ch": 0.4, "tf": 202, "sa": 26.5, "km": 76.0, "am": 5.0, "pj": 3.0, "imp": true, "kat": "Sangat Ringan"}, {"t": "2025-08-31", "pd": 46.7, "ch": 0.0, "tf": 217, "sa": 26.9, "km": 73.0, "am": 4.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-09-01", "pd": 47.5, "ch": 0.0, "tf": 205, "sa": 26.3, "km": 78.0, "am": 6.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-09-02", "pd": 43.5, "ch": 0.0, "tf": 201, "sa": 28.0, "km": 79.0, "am": 7.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-09-03", "pd": 39.8, "ch": 0.0, "tf": 209, "sa": 27.9, "km": 75.0, "am": 6.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-09-04", "pd": 50.7, "ch": 0.0, "tf": 206, "sa": 27.7, "km": 73.0, "am": 6.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-09-05", "pd": 47.6, "ch": 0.0, "tf": 216, "sa": 26.8, "km": 71.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-09-06", "pd": 44.9, "ch": 0.0, "tf": 199, "sa": 25.8, "km": 74.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-09-07", "pd": 46.0, "ch": 0.0, "tf": 216, "sa": 25.6, "km": 73.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-09-08", "pd": 49.8, "ch": 0.0, "tf": 209, "sa": 27.1, "km": 76.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-09-09", "pd": 41.0, "ch": 6.5, "tf": 203, "sa": 25.4, "km": 88.0, "am": 5.0, "pj": 3.9, "imp": false, "kat": "Ringan"}, {"t": "2025-09-10", "pd": 60.3, "ch": 98.7, "tf": 209, "sa": 25.3, "km": 90.0, "am": 4.0, "pj": 0.0, "imp": false, "kat": "Lebat"}, {"t": "2025-09-11", "pd": 40.0, "ch": 9.3, "tf": 205, "sa": 27.3, "km": 83.0, "am": 6.0, "pj": 0.7, "imp": false, "kat": "Ringan"}, {"t": "2025-09-12", "pd": 46.7, "ch": 0.0, "tf": 214, "sa": 27.1, "km": 79.0, "am": 4.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-09-13", "pd": 49.5, "ch": 0.0, "tf": 202, "sa": 26.8, "km": 81.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-09-14", "pd": 51.6, "ch": 0.0, "tf": 215, "sa": 27.7, "km": 79.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-09-15", "pd": 41.1, "ch": 0.0, "tf": 208, "sa": 27.3, "km": 80.0, "am": 5.0, "pj": 8.0, "imp": true, "kat": "Tidak Hujan"}, {"t": "2025-09-16", "pd": 38.9, "ch": 0.6, "tf": 198, "sa": 27.2, "km": 79.0, "am": 6.0, "pj": 3.5, "imp": false, "kat": "Sangat Ringan"}, {"t": "2025-09-17", "pd": 43.9, "ch": 0.0, "tf": 209, "sa": 27.5, "km": 75.0, "am": 5.0, "pj": 5.4, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-09-18", "pd": 47.6, "ch": 0.2, "tf": 205, "sa": 25.7, "km": 85.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Sangat Ringan"}, {"t": "2025-09-19", "pd": 54.1, "ch": 88.1, "tf": 214, "sa": 27.1, "km": 82.0, "am": 6.0, "pj": 0.0, "imp": false, "kat": "Lebat"}, {"t": "2025-09-20", "pd": 38.5, "ch": 0.0, "tf": 200, "sa": 27.7, "km": 78.0, "am": 6.0, "pj": 6.1, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-09-21", "pd": 46.7, "ch": 0.0, "tf": 212, "sa": 27.4, "km": 78.0, "am": 5.0, "pj": 6.1, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-09-22", "pd": 46.5, "ch": 0.0, "tf": 208, "sa": 26.3, "km": 81.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-09-23", "pd": 46.7, "ch": 0.0, "tf": 197, "sa": 26.3, "km": 81.0, "am": 6.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-09-24", "pd": 52.0, "ch": 0.0, "tf": 209, "sa": 27.1, "km": 79.0, "am": 4.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-09-25", "pd": 47.2, "ch": 0.0, "tf": 203, "sa": 27.3, "km": 82.0, "am": 6.0, "pj": 8.0, "imp": true, "kat": "Tidak Hujan"}, {"t": "2025-09-26", "pd": 51.7, "ch": 0.0, "tf": 213, "sa": 27.9, "km": 79.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-09-27", "pd": 52.4, "ch": 0.0, "tf": 197, "sa": 27.6, "km": 82.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-09-28", "pd": 60.2, "ch": 44.1, "tf": 211, "sa": 27.1, "km": 86.0, "am": 6.0, "pj": 8.0, "imp": false, "kat": "Sedang"}, {"t": "2025-09-29", "pd": 53.8, "ch": 0.0, "tf": 202, "sa": 28.3, "km": 79.0, "am": 6.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-09-30", "pd": 56.5, "ch": 1.2, "tf": 197, "sa": 27.3, "km": 83.0, "am": 4.0, "pj": 8.0, "imp": false, "kat": "Sangat Ringan"}, {"t": "2025-10-01", "pd": 54.9, "ch": 0.2, "tf": 204, "sa": 28.1, "km": 79.0, "am": 5.0, "pj": 1.2, "imp": false, "kat": "Sangat Ringan"}, {"t": "2025-10-02", "pd": 52.8, "ch": 0.0, "tf": 201, "sa": 27.9, "km": 77.0, "am": 4.0, "pj": 7.3, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-10-03", "pd": 55.9, "ch": 0.0, "tf": 213, "sa": 26.9, "km": 80.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-10-04", "pd": 49.5, "ch": 0.0, "tf": 199, "sa": 27.7, "km": 77.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-10-05", "pd": 55.3, "ch": 0.0, "tf": 216, "sa": 28.4, "km": 77.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-10-06", "pd": 57.5, "ch": 8.6, "tf": 208, "sa": 27.4, "km": 83.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Ringan"}, {"t": "2025-10-07", "pd": 36.5, "ch": 0.0, "tf": 198, "sa": 27.0, "km": 79.0, "am": 4.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-10-08", "pd": 52.2, "ch": 0.0, "tf": 210, "sa": 26.9, "km": 75.0, "am": 6.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-10-09", "pd": 46.5, "ch": 0.0, "tf": 202, "sa": 26.7, "km": 78.0, "am": 5.0, "pj": 8.0, "imp": true, "kat": "Tidak Hujan"}, {"t": "2025-10-10", "pd": 59.6, "ch": 0.0, "tf": 213, "sa": 27.2, "km": 76.0, "am": 4.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-10-11", "pd": 41.5, "ch": 0.0, "tf": 201, "sa": 28.0, "km": 77.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-10-12", "pd": 53.6, "ch": 0.4, "tf": 212, "sa": 28.0, "km": 84.0, "am": 5.0, "pj": 4.0, "imp": false, "kat": "Sangat Ringan"}, {"t": "2025-10-13", "pd": 45.6, "ch": 0.0, "tf": 206, "sa": 28.9, "km": 82.0, "am": 6.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-10-14", "pd": 40.3, "ch": 0.0, "tf": 196, "sa": 29.0, "km": 83.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-10-15", "pd": 41.8, "ch": 0.0, "tf": 203, "sa": 29.2, "km": 78.0, "am": 6.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-10-16", "pd": 45.3, "ch": 0.0, "tf": 201, "sa": 29.5, "km": 78.0, "am": 6.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-10-17", "pd": 56.7, "ch": 7.2, "tf": 210, "sa": 29.3, "km": 79.0, "am": 6.0, "pj": 8.0, "imp": false, "kat": "Ringan"}, {"t": "2025-10-18", "pd": 38.7, "ch": 47.1, "tf": 195, "sa": 28.7, "km": 83.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Sedang"}, {"t": "2025-10-19", "pd": 53.6, "ch": 0.0, "tf": 211, "sa": 29.2, "km": 81.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-10-20", "pd": 46.4, "ch": 0.0, "tf": 207, "sa": 28.9, "km": 80.0, "am": 5.0, "pj": 8.0, "imp": true, "kat": "Tidak Hujan"}, {"t": "2025-10-21", "pd": 34.7, "ch": 0.0, "tf": 196, "sa": 29.1, "km": 79.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-10-22", "pd": 48.0, "ch": 0.0, "tf": 203, "sa": 28.4, "km": 80.0, "am": 5.0, "pj": 7.5, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-10-23", "pd": 53.3, "ch": 0.0, "tf": 199, "sa": 28.3, "km": 80.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-10-24", "pd": 54.7, "ch": 0.0, "tf": 214, "sa": 28.6, "km": 78.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-10-25", "pd": 38.7, "ch": 0.0, "tf": 195, "sa": 28.5, "km": 76.0, "am": 4.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-10-26", "pd": 53.2, "ch": 0.0, "tf": 219, "sa": 28.5, "km": 79.0, "am": 5.0, "pj": 7.2, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-10-27", "pd": 47.6, "ch": 0.0, "tf": 212, "sa": 28.1, "km": 80.0, "am": 4.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-10-28", "pd": 38.2, "ch": 0.0, "tf": 192, "sa": 28.6, "km": 79.0, "am": 5.0, "pj": 1.7, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-10-29", "pd": 53.7, "ch": 0.0, "tf": 201, "sa": 27.8, "km": 84.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-10-30", "pd": 47.9, "ch": 12.5, "tf": 190, "sa": 28.3, "km": 80.0, "am": 5.0, "pj": 4.3, "imp": false, "kat": "Ringan"}, {"t": "2025-10-31", "pd": 55.0, "ch": 95.5, "tf": 200, "sa": 27.2, "km": 82.0, "am": 4.0, "pj": 8.0, "imp": false, "kat": "Lebat"}, {"t": "2025-11-01", "pd": 43.1, "ch": 0.0, "tf": 182, "sa": 28.5, "km": 81.0, "am": 5.0, "pj": 7.2, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-11-02", "pd": 55.3, "ch": 4.0, "tf": 199, "sa": 28.6, "km": 81.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Sangat Ringan"}, {"t": "2025-11-03", "pd": 47.9, "ch": 2.5, "tf": 192, "sa": 27.8, "km": 81.0, "am": 3.0, "pj": 6.0, "imp": false, "kat": "Sangat Ringan"}, {"t": "2025-11-04", "pd": 44.2, "ch": 0.4, "tf": 181, "sa": 27.6, "km": 81.0, "am": 5.0, "pj": 7.1, "imp": false, "kat": "Sangat Ringan"}, {"t": "2025-11-05", "pd": 52.9, "ch": 0.4, "tf": 205, "sa": 27.9, "km": 79.0, "am": 6.0, "pj": 5.4, "imp": true, "kat": "Sangat Ringan"}, {"t": "2025-11-06", "pd": 40.8, "ch": 49.0, "tf": 191, "sa": 26.6, "km": 85.0, "am": 9.0, "pj": 7.0, "imp": false, "kat": "Sedang"}, {"t": "2025-11-07", "pd": 47.6, "ch": 1.7, "tf": 209, "sa": 28.5, "km": 79.0, "am": 6.0, "pj": 3.4, "imp": false, "kat": "Sangat Ringan"}, {"t": "2025-11-08", "pd": 44.6, "ch": 0.0, "tf": 197, "sa": 28.7, "km": 78.0, "am": 15.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-11-09", "pd": 49.5, "ch": 6.1, "tf": 208, "sa": 26.8, "km": 87.0, "am": 6.0, "pj": 8.0, "imp": false, "kat": "Ringan"}, {"t": "2025-11-10", "pd": 44.1, "ch": 20.2, "tf": 202, "sa": 27.1, "km": 81.0, "am": 6.0, "pj": 0.0, "imp": false, "kat": "Sedang"}, {"t": "2025-11-11", "pd": 46.6, "ch": 20.2, "tf": 192, "sa": 27.5, "km": 80.0, "am": 5.0, "pj": 4.7, "imp": true, "kat": "Sedang"}, {"t": "2025-11-12", "pd": 50.0, "ch": 1.6, "tf": 204, "sa": 26.9, "km": 85.0, "am": 6.0, "pj": 5.6, "imp": false, "kat": "Sangat Ringan"}, {"t": "2025-11-13", "pd": 40.4, "ch": 4.4, "tf": 194, "sa": 28.0, "km": 75.0, "am": 8.0, "pj": 7.6, "imp": false, "kat": "Sangat Ringan"}, {"t": "2025-11-14", "pd": 52.9, "ch": 1.0, "tf": 208, "sa": 28.3, "km": 75.0, "am": 8.0, "pj": 1.6, "imp": false, "kat": "Sangat Ringan"}, {"t": "2025-11-15", "pd": 41.5, "ch": 0.2, "tf": 195, "sa": 28.6, "km": 68.0, "am": 6.0, "pj": 6.4, "imp": false, "kat": "Sangat Ringan"}, {"t": "2025-11-16", "pd": 48.5, "ch": 0.0, "tf": 206, "sa": 28.5, "km": 75.0, "am": 4.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-11-17", "pd": 44.2, "ch": 0.0, "tf": 197, "sa": 28.8, "km": 78.0, "am": 4.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-11-18", "pd": 41.4, "ch": 6.0, "tf": 187, "sa": 27.9, "km": 82.0, "am": 4.0, "pj": 8.0, "imp": false, "kat": "Ringan"}, {"t": "2025-11-19", "pd": 38.0, "ch": 4.7, "tf": 201, "sa": 27.6, "km": 77.0, "am": 4.0, "pj": 3.5, "imp": false, "kat": "Sangat Ringan"}, {"t": "2025-11-20", "pd": 42.1, "ch": 0.0, "tf": 191, "sa": 28.0, "km": 76.0, "am": 5.0, "pj": 7.2, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-11-21", "pd": 44.9, "ch": 0.0, "tf": 207, "sa": 28.3, "km": 77.0, "am": 4.0, "pj": 5.8, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-11-22", "pd": 40.2, "ch": 0.0, "tf": 191, "sa": 28.2, "km": 77.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-11-23", "pd": 54.2, "ch": 0.7, "tf": 203, "sa": 27.7, "km": 82.0, "am": 5.0, "pj": 5.1, "imp": false, "kat": "Sangat Ringan"}, {"t": "2025-11-24", "pd": 46.2, "ch": 43.4, "tf": 200, "sa": 27.1, "km": 84.0, "am": 8.0, "pj": 5.3, "imp": false, "kat": "Sedang"}, {"t": "2025-11-25", "pd": 44.1, "ch": 5.5, "tf": 188, "sa": 28.2, "km": 80.0, "am": 6.0, "pj": 6.6, "imp": false, "kat": "Ringan"}, {"t": "2025-11-26", "pd": 49.8, "ch": 0.0, "tf": 206, "sa": 27.6, "km": 80.0, "am": 9.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-11-27", "pd": 42.7, "ch": 29.4, "tf": 192, "sa": 28.3, "km": 78.0, "am": 4.0, "pj": 7.3, "imp": false, "kat": "Sedang"}, {"t": "2025-11-28", "pd": 45.7, "ch": 29.4, "tf": 210, "sa": 28.6, "km": 75.0, "am": 6.0, "pj": 2.8, "imp": true, "kat": "Sedang"}, {"t": "2025-11-29", "pd": 47.8, "ch": 0.5, "tf": 191, "sa": 28.7, "km": 71.0, "am": 5.0, "pj": 4.9, "imp": false, "kat": "Sangat Ringan"}, {"t": "2025-11-30", "pd": 44.8, "ch": 0.0, "tf": 203, "sa": 28.3, "km": 74.0, "am": 5.0, "pj": 3.6, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-12-01", "pd": 51.2, "ch": 0.0, "tf": 201, "sa": 28.3, "km": 77.0, "am": 5.0, "pj": 4.7, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-12-02", "pd": 31.4, "ch": 45.6, "tf": 189, "sa": 27.1, "km": 84.0, "am": 4.0, "pj": 3.8, "imp": false, "kat": "Sedang"}, {"t": "2025-12-03", "pd": 42.8, "ch": 10.0, "tf": 209, "sa": 27.8, "km": 83.0, "am": 5.0, "pj": 2.9, "imp": false, "kat": "Ringan"}, {"t": "2025-12-04", "pd": 40.4, "ch": 2.4, "tf": 193, "sa": 28.6, "km": 75.0, "am": 4.0, "pj": 3.2, "imp": false, "kat": "Sangat Ringan"}, {"t": "2025-12-05", "pd": 46.4, "ch": 1.1, "tf": 211, "sa": 27.8, "km": 78.0, "am": 3.0, "pj": 8.0, "imp": false, "kat": "Sangat Ringan"}, {"t": "2025-12-06", "pd": 37.9, "ch": 1.2, "tf": 195, "sa": 28.5, "km": 76.0, "am": 4.0, "pj": 3.9, "imp": false, "kat": "Sangat Ringan"}, {"t": "2025-12-07", "pd": 47.6, "ch": 1.2, "tf": 210, "sa": 28.6, "km": 78.0, "am": 4.0, "pj": 8.0, "imp": true, "kat": "Sangat Ringan"}, {"t": "2025-12-08", "pd": 41.7, "ch": 12.4, "tf": 205, "sa": 27.9, "km": 84.0, "am": 6.0, "pj": 8.0, "imp": false, "kat": "Ringan"}, {"t": "2025-12-09", "pd": 26.4, "ch": 5.8, "tf": 194, "sa": 28.3, "km": 82.0, "am": 6.0, "pj": 4.9, "imp": false, "kat": "Ringan"}, {"t": "2025-12-10", "pd": 46.4, "ch": 2.4, "tf": 212, "sa": 29.3, "km": 78.0, "am": 6.0, "pj": 8.0, "imp": false, "kat": "Sangat Ringan"}, {"t": "2025-12-11", "pd": 37.9, "ch": 1.7, "tf": 199, "sa": 28.2, "km": 80.0, "am": 5.0, "pj": 7.5, "imp": false, "kat": "Sangat Ringan"}, {"t": "2025-12-12", "pd": 55.1, "ch": 10.2, "tf": 214, "sa": 29.0, "km": 73.0, "am": 6.0, "pj": 2.1, "imp": false, "kat": "Ringan"}, {"t": "2025-12-13", "pd": 43.2, "ch": 1.9, "tf": 199, "sa": 28.5, "km": 78.0, "am": 8.0, "pj": 6.4, "imp": false, "kat": "Sangat Ringan"}, {"t": "2025-12-14", "pd": 60.6, "ch": 11.0, "tf": 213, "sa": 26.3, "km": 90.0, "am": 5.0, "pj": 5.0, "imp": false, "kat": "Ringan"}, {"t": "2025-12-15", "pd": 55.8, "ch": 92.9, "tf": 208, "sa": 26.8, "km": 82.0, "am": 9.0, "pj": 0.0, "imp": false, "kat": "Lebat"}, {"t": "2025-12-16", "pd": 41.1, "ch": 7.0, "tf": 202, "sa": 28.5, "km": 74.0, "am": 10.0, "pj": 7.8, "imp": false, "kat": "Ringan"}, {"t": "2025-12-17", "pd": 48.0, "ch": 0.2, "tf": 221, "sa": 29.1, "km": 71.0, "am": 7.0, "pj": 5.8, "imp": false, "kat": "Sangat Ringan"}, {"t": "2025-12-18", "pd": 50.0, "ch": 0.0, "tf": 208, "sa": 27.3, "km": 84.0, "am": 4.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-12-19", "pd": 59.6, "ch": 40.2, "tf": 223, "sa": 26.8, "km": 87.0, "am": 4.0, "pj": 5.5, "imp": false, "kat": "Sedang"}, {"t": "2025-12-20", "pd": 62.8, "ch": 53.5, "tf": 207, "sa": 27.6, "km": 82.0, "am": 5.0, "pj": 0.8, "imp": false, "kat": "Lebat"}, {"t": "2025-12-21", "pd": 52.0, "ch": 53.5, "tf": 221, "sa": 28.0, "km": 80.0, "am": 9.0, "pj": 1.7, "imp": true, "kat": "Lebat"}, {"t": "2025-12-22", "pd": 48.4, "ch": 53.5, "tf": 213, "sa": 28.9, "km": 80.0, "am": 8.0, "pj": 3.0, "imp": true, "kat": "Lebat"}, {"t": "2025-12-23", "pd": 46.2, "ch": 1.0, "tf": 208, "sa": 29.6, "km": 74.0, "am": 7.0, "pj": 7.5, "imp": false, "kat": "Sangat Ringan"}, {"t": "2025-12-24", "pd": 47.3, "ch": 0.5, "tf": 220, "sa": 29.2, "km": 75.0, "am": 8.0, "pj": 8.0, "imp": false, "kat": "Sangat Ringan"}, {"t": "2025-12-25", "pd": 40.3, "ch": 0.5, "tf": 208, "sa": 29.5, "km": 77.0, "am": 8.0, "pj": 2.9, "imp": true, "kat": "Sangat Ringan"}, {"t": "2025-12-26", "pd": 53.4, "ch": 0.8, "tf": 219, "sa": 28.5, "km": 79.0, "am": 9.0, "pj": 8.0, "imp": false, "kat": "Sangat Ringan"}, {"t": "2025-12-27", "pd": 55.3, "ch": 21.1, "tf": 209, "sa": 26.4, "km": 94.0, "am": 9.0, "pj": 1.7, "imp": false, "kat": "Sedang"}, {"t": "2025-12-28", "pd": 59.7, "ch": 74.5, "tf": 222, "sa": 28.5, "km": 83.0, "am": 7.0, "pj": 0.0, "imp": false, "kat": "Lebat"}, {"t": "2025-12-29", "pd": 54.9, "ch": 7.2, "tf": 213, "sa": 29.2, "km": 73.0, "am": 7.0, "pj": 5.5, "imp": false, "kat": "Ringan"}, {"t": "2025-12-30", "pd": 46.9, "ch": 0.0, "tf": 211, "sa": 29.0, "km": 74.0, "am": 6.0, "pj": 7.2, "imp": false, "kat": "Tidak Hujan"}, {"t": "2025-12-31", "pd": 41.0, "ch": 0.7, "tf": 211, "sa": 28.2, "km": 78.0, "am": 4.0, "pj": 7.7, "imp": false, "kat": "Sangat Ringan"}, {"t": "2026-01-01", "pd": 45.7, "ch": 0.7, "tf": 208, "sa": 28.5, "km": 81.0, "am": 4.0, "pj": 7.7, "imp": true, "kat": "Sangat Ringan"}, {"t": "2026-01-02", "pd": 58.6, "ch": 0.0, "tf": 222, "sa": 28.2, "km": 79.0, "am": 6.0, "pj": 3.7, "imp": false, "kat": "Tidak Hujan"}, {"t": "2026-01-03", "pd": 51.0, "ch": 5.4, "tf": 210, "sa": 28.1, "km": 78.0, "am": 5.0, "pj": 3.1, "imp": false, "kat": "Ringan"}, {"t": "2026-01-04", "pd": 54.3, "ch": 37.4, "tf": 220, "sa": 27.7, "km": 84.0, "am": 8.0, "pj": 6.4, "imp": false, "kat": "Sedang"}, {"t": "2026-01-05", "pd": 56.3, "ch": 14.0, "tf": 214, "sa": 27.2, "km": 84.0, "am": 7.0, "pj": 4.4, "imp": false, "kat": "Ringan"}, {"t": "2026-01-06", "pd": 48.8, "ch": 10.1, "tf": 211, "sa": 27.6, "km": 84.0, "am": 9.0, "pj": 1.1, "imp": false, "kat": "Ringan"}, {"t": "2026-01-07", "pd": 51.9, "ch": 27.3, "tf": 322, "sa": 28.8, "km": 76.0, "am": 7.0, "pj": 3.8, "imp": false, "kat": "Sedang"}, {"t": "2026-01-08", "pd": 57.6, "ch": 90.6, "tf": 210, "sa": 25.7, "km": 91.0, "am": 7.0, "pj": 6.4, "imp": false, "kat": "Lebat"}, {"t": "2026-01-09", "pd": 55.4, "ch": 72.4, "tf": 222, "sa": 27.9, "km": 82.0, "am": 8.0, "pj": 1.4, "imp": false, "kat": "Lebat"}, {"t": "2026-01-10", "pd": 56.1, "ch": 33.1, "tf": 205, "sa": 27.2, "km": 81.0, "am": 8.0, "pj": 5.6, "imp": false, "kat": "Sedang"}, {"t": "2026-01-11", "pd": 45.9, "ch": 1.0, "tf": 221, "sa": 27.8, "km": 80.0, "am": 9.0, "pj": 5.0, "imp": false, "kat": "Sangat Ringan"}, {"t": "2026-01-12", "pd": 46.4, "ch": 1.8, "tf": 212, "sa": 27.0, "km": 83.0, "am": 6.0, "pj": 3.0, "imp": false, "kat": "Sangat Ringan"}, {"t": "2026-01-13", "pd": 42.0, "ch": 6.4, "tf": 201, "sa": 27.4, "km": 82.0, "am": 6.0, "pj": 0.3, "imp": false, "kat": "Ringan"}, {"t": "2026-01-14", "pd": 39.4, "ch": 19.1, "tf": 219, "sa": 28.3, "km": 77.0, "am": 9.0, "pj": 4.0, "imp": false, "kat": "Ringan"}, {"t": "2026-01-15", "pd": 47.8, "ch": 4.8, "tf": 208, "sa": 27.1, "km": 81.0, "am": 8.0, "pj": 6.6, "imp": false, "kat": "Sangat Ringan"}, {"t": "2026-01-16", "pd": 39.9, "ch": 27.7, "tf": 221, "sa": 26.9, "km": 82.0, "am": 6.0, "pj": 3.8, "imp": false, "kat": "Sedang"}, {"t": "2026-01-17", "pd": 38.2, "ch": 0.6, "tf": 205, "sa": 28.6, "km": 80.0, "am": 8.0, "pj": 8.0, "imp": false, "kat": "Sangat Ringan"}, {"t": "2026-01-18", "pd": 42.9, "ch": 0.6, "tf": 220, "sa": 28.1, "km": 82.0, "am": 10.0, "pj": 5.0, "imp": true, "kat": "Sangat Ringan"}, {"t": "2026-01-19", "pd": 47.4, "ch": 4.3, "tf": 209, "sa": 28.6, "km": 78.0, "am": 11.0, "pj": 4.8, "imp": false, "kat": "Sangat Ringan"}, {"t": "2026-01-20", "pd": 36.5, "ch": 18.6, "tf": 198, "sa": 26.4, "km": 90.0, "am": 12.0, "pj": 7.4, "imp": false, "kat": "Ringan"}, {"t": "2026-01-21", "pd": 46.2, "ch": 61.5, "tf": 214, "sa": 25.7, "km": 90.0, "am": 12.0, "pj": 5.1, "imp": false, "kat": "Lebat"}, {"t": "2026-01-22", "pd": 45.1, "ch": 48.2, "tf": 205, "sa": 26.0, "km": 91.0, "am": 11.0, "pj": 1.6, "imp": false, "kat": "Sedang"}, {"t": "2026-01-23", "pd": 43.1, "ch": 21.0, "tf": 218, "sa": 27.9, "km": 80.0, "am": 8.0, "pj": 0.0, "imp": false, "kat": "Sedang"}, {"t": "2026-01-24", "pd": 41.5, "ch": 0.0, "tf": 205, "sa": 30.4, "km": 65.0, "am": 7.0, "pj": 6.6, "imp": false, "kat": "Tidak Hujan"}, {"t": "2026-01-25", "pd": 36.4, "ch": 0.0, "tf": 214, "sa": 28.2, "km": 77.0, "am": 4.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2026-01-26", "pd": 36.5, "ch": 2.8, "tf": 208, "sa": 27.7, "km": 83.0, "am": 8.0, "pj": 3.8, "imp": false, "kat": "Sangat Ringan"}, {"t": "2026-01-27", "pd": 35.2, "ch": 11.0, "tf": 194, "sa": 26.0, "km": 88.0, "am": 8.0, "pj": 0.1, "imp": false, "kat": "Ringan"}, {"t": "2026-01-28", "pd": 39.2, "ch": 32.8, "tf": 243, "sa": 26.9, "km": 87.0, "am": 5.0, "pj": 0.2, "imp": false, "kat": "Sedang"}, {"t": "2026-01-29", "pd": 31.3, "ch": 1.5, "tf": 198, "sa": 27.3, "km": 83.0, "am": 4.0, "pj": 0.4, "imp": false, "kat": "Sangat Ringan"}, {"t": "2026-01-30", "pd": 51.6, "ch": 0.0, "tf": 214, "sa": 28.2, "km": 83.0, "am": 6.0, "pj": 6.1, "imp": false, "kat": "Tidak Hujan"}, {"t": "2026-01-31", "pd": 42.3, "ch": 0.0, "tf": 201, "sa": 28.8, "km": 76.0, "am": 9.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2026-02-01", "pd": 47.9, "ch": 31.2, "tf": 212, "sa": 27.8, "km": 84.0, "am": 10.0, "pj": 3.5, "imp": false, "kat": "Sedang"}, {"t": "2026-02-02", "pd": 44.0, "ch": 16.6, "tf": 208, "sa": 28.6, "km": 78.0, "am": 8.0, "pj": 6.2, "imp": false, "kat": "Ringan"}, {"t": "2026-02-03", "pd": 34.9, "ch": 2.4, "tf": 192, "sa": 28.0, "km": 83.0, "am": 7.0, "pj": 8.0, "imp": false, "kat": "Sangat Ringan"}, {"t": "2026-02-04", "pd": 45.3, "ch": 0.7, "tf": 215, "sa": 29.0, "km": 77.0, "am": 7.0, "pj": 8.0, "imp": false, "kat": "Sangat Ringan"}, {"t": "2026-02-05", "pd": 38.3, "ch": 13.9, "tf": 201, "sa": 28.0, "km": 80.0, "am": 12.0, "pj": 8.0, "imp": false, "kat": "Ringan"}, {"t": "2026-02-06", "pd": 58.9, "ch": 28.8, "tf": 214, "sa": 27.6, "km": 84.0, "am": 8.0, "pj": 8.0, "imp": false, "kat": "Sedang"}, {"t": "2026-02-07", "pd": 41.4, "ch": 0.0, "tf": 268, "sa": 29.1, "km": 77.0, "am": 8.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2026-02-08", "pd": 45.9, "ch": 10.8, "tf": 209, "sa": 28.6, "km": 79.0, "am": 6.0, "pj": 7.1, "imp": false, "kat": "Ringan"}, {"t": "2026-02-09", "pd": 49.0, "ch": 10.8, "tf": 202, "sa": 28.0, "km": 81.0, "am": 6.0, "pj": 8.0, "imp": true, "kat": "Ringan"}, {"t": "2026-02-10", "pd": 52.3, "ch": 38.6, "tf": 193, "sa": 26.6, "km": 89.0, "am": 7.0, "pj": 1.3, "imp": false, "kat": "Sedang"}, {"t": "2026-02-11", "pd": 57.7, "ch": 69.6, "tf": 213, "sa": 25.9, "km": 92.0, "am": 9.0, "pj": 1.2, "imp": false, "kat": "Lebat"}, {"t": "2026-02-12", "pd": 50.5, "ch": 20.0, "tf": 204, "sa": 27.8, "km": 82.0, "am": 8.0, "pj": 0.5, "imp": false, "kat": "Ringan"}, {"t": "2026-02-13", "pd": 61.9, "ch": 16.3, "tf": 215, "sa": 27.5, "km": 81.0, "am": 9.0, "pj": 4.4, "imp": false, "kat": "Ringan"}, {"t": "2026-02-14", "pd": 52.2, "ch": 10.5, "tf": 203, "sa": 26.5, "km": 85.0, "am": 11.0, "pj": 2.0, "imp": false, "kat": "Ringan"}, {"t": "2026-02-15", "pd": 53.3, "ch": 19.4, "tf": 212, "sa": 28.5, "km": 78.0, "am": 7.0, "pj": 0.2, "imp": false, "kat": "Ringan"}, {"t": "2026-02-16", "pd": 51.0, "ch": 3.8, "tf": 202, "sa": 27.3, "km": 84.0, "am": 9.0, "pj": 7.6, "imp": false, "kat": "Sangat Ringan"}, {"t": "2026-02-17", "pd": 43.9, "ch": 18.4, "tf": 198, "sa": 27.0, "km": 88.0, "am": 5.0, "pj": 0.7, "imp": false, "kat": "Ringan"}, {"t": "2026-02-18", "pd": 44.8, "ch": 0.0, "tf": 210, "sa": 28.4, "km": 83.0, "am": 8.0, "pj": 5.3, "imp": false, "kat": "Tidak Hujan"}, {"t": "2026-02-19", "pd": 34.0, "ch": 108.5, "tf": 202, "sa": 27.1, "km": 82.0, "am": 4.0, "pj": 8.0, "imp": false, "kat": "Sangat Lebat"}, {"t": "2026-02-20", "pd": 43.5, "ch": 0.0, "tf": 209, "sa": 27.6, "km": 83.0, "am": 7.0, "pj": 5.6, "imp": false, "kat": "Tidak Hujan"}, {"t": "2026-02-21", "pd": 31.9, "ch": 1.5, "tf": 191, "sa": 28.0, "km": 81.0, "am": 7.0, "pj": 6.9, "imp": false, "kat": "Sangat Ringan"}, {"t": "2026-02-22", "pd": 50.8, "ch": 49.0, "tf": 197, "sa": 25.8, "km": 91.0, "am": 9.0, "pj": 5.6, "imp": false, "kat": "Sedang"}, {"t": "2026-02-23", "pd": 55.3, "ch": 49.8, "tf": 188, "sa": 25.7, "km": 91.0, "am": 13.0, "pj": 0.0, "imp": false, "kat": "Sedang"}, {"t": "2026-02-24", "pd": 48.3, "ch": 216.7, "tf": 177, "sa": 25.3, "km": 95.0, "am": 14.0, "pj": 0.0, "imp": false, "kat": "Ekstrem"}, {"t": "2026-02-25", "pd": 48.0, "ch": 22.4, "tf": 198, "sa": 27.3, "km": 83.0, "am": 9.0, "pj": 0.0, "imp": false, "kat": "Sedang"}, {"t": "2026-02-26", "pd": 45.7, "ch": 55.6, "tf": 184, "sa": 25.8, "km": 89.0, "am": 8.0, "pj": 1.4, "imp": false, "kat": "Lebat"}, {"t": "2026-02-27", "pd": 51.0, "ch": 39.7, "tf": 198, "sa": 25.6, "km": 85.0, "am": 9.0, "pj": 4.5, "imp": false, "kat": "Sedang"}, {"t": "2026-02-28", "pd": 42.1, "ch": 16.6, "tf": 182, "sa": 27.2, "km": 85.0, "am": 10.0, "pj": 2.4, "imp": false, "kat": "Ringan"}, {"t": "2026-03-01", "pd": 42.4, "ch": 3.6, "tf": 196, "sa": 27.6, "km": 82.0, "am": 8.0, "pj": 2.6, "imp": false, "kat": "Sangat Ringan"}, {"t": "2026-03-02", "pd": 45.8, "ch": 8.4, "tf": 186, "sa": 26.9, "km": 90.0, "am": 8.0, "pj": 0.5, "imp": false, "kat": "Ringan"}, {"t": "2026-03-03", "pd": 31.4, "ch": 39.7, "tf": 174, "sa": 27.6, "km": 88.0, "am": 5.0, "pj": 0.0, "imp": false, "kat": "Sedang"}, {"t": "2026-03-04", "pd": 40.0, "ch": 0.1, "tf": 194, "sa": 27.7, "km": 86.0, "am": 6.0, "pj": 2.9, "imp": false, "kat": "Sangat Ringan"}, {"t": "2026-03-05", "pd": 33.3, "ch": 24.1, "tf": 177, "sa": 27.3, "km": 85.0, "am": 13.0, "pj": 8.0, "imp": false, "kat": "Sedang"}, {"t": "2026-03-06", "pd": 33.3, "ch": 0.0, "tf": 198, "sa": 28.9, "km": 78.0, "am": 9.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2026-03-07", "pd": 36.7, "ch": 0.2, "tf": 179, "sa": 29.1, "km": 73.0, "am": 8.0, "pj": 8.0, "imp": false, "kat": "Sangat Ringan"}, {"t": "2026-03-08", "pd": 34.5, "ch": 0.0, "tf": 196, "sa": 28.7, "km": 77.0, "am": 6.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2026-03-09", "pd": 30.4, "ch": 0.0, "tf": 187, "sa": 28.5, "km": 81.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2026-03-10", "pd": 32.5, "ch": 0.2, "tf": 173, "sa": 29.0, "km": 78.0, "am": 8.0, "pj": 5.9, "imp": false, "kat": "Sangat Ringan"}, {"t": "2026-03-11", "pd": 39.2, "ch": 1.0, "tf": 200, "sa": 28.2, "km": 82.0, "am": 9.0, "pj": 8.0, "imp": false, "kat": "Sangat Ringan"}, {"t": "2026-03-12", "pd": 37.0, "ch": 5.3, "tf": 186, "sa": 28.4, "km": 79.0, "am": 9.0, "pj": 5.7, "imp": false, "kat": "Ringan"}, {"t": "2026-03-13", "pd": 47.4, "ch": 5.3, "tf": 213, "sa": 28.7, "km": 82.0, "am": 9.0, "pj": 8.0, "imp": true, "kat": "Ringan"}, {"t": "2026-03-14", "pd": 41.3, "ch": 8.0, "tf": 203, "sa": 28.1, "km": 85.0, "am": 6.0, "pj": 8.0, "imp": false, "kat": "Ringan"}, {"t": "2026-03-15", "pd": 56.2, "ch": 0.0, "tf": 218, "sa": 28.1, "km": 84.0, "am": 6.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2026-03-16", "pd": 42.2, "ch": 12.1, "tf": 207, "sa": 27.3, "km": 87.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Ringan"}, {"t": "2026-03-17", "pd": 52.3, "ch": 1.2, "tf": 200, "sa": 28.2, "km": 84.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Sangat Ringan"}, {"t": "2026-03-18", "pd": 63.6, "ch": 51.0, "tf": 215, "sa": 27.2, "km": 89.0, "am": 4.0, "pj": 8.0, "imp": false, "kat": "Lebat"}, {"t": "2026-03-19", "pd": 30.2, "ch": 15.4, "tf": 63, "sa": 28.1, "km": 85.0, "am": 5.0, "pj": 5.0, "imp": false, "kat": "Ringan"}, {"t": "2026-03-20", "pd": 49.8, "ch": 4.0, "tf": 201, "sa": 27.6, "km": 86.0, "am": 4.0, "pj": 7.9, "imp": false, "kat": "Sangat Ringan"}, {"t": "2026-03-21", "pd": 38.0, "ch": 1.9, "tf": 293, "sa": 27.8, "km": 84.0, "am": 5.0, "pj": 5.3, "imp": false, "kat": "Sangat Ringan"}, {"t": "2026-03-22", "pd": 51.2, "ch": 0.0, "tf": 218, "sa": 27.4, "km": 81.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2026-03-23", "pd": 51.2, "ch": 0.0, "tf": 213, "sa": 28.4, "km": 79.0, "am": 6.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2026-03-24", "pd": 44.6, "ch": 0.0, "tf": 205, "sa": 28.5, "km": 80.0, "am": 6.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2026-03-25", "pd": 53.1, "ch": 0.0, "tf": 215, "sa": 29.0, "km": 73.0, "am": 7.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2026-03-26", "pd": 57.6, "ch": 5.0, "tf": 204, "sa": 28.5, "km": 79.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Sangat Ringan"}, {"t": "2026-03-27", "pd": 56.3, "ch": 1.7, "tf": 215, "sa": 28.6, "km": 80.0, "am": 4.0, "pj": 8.0, "imp": false, "kat": "Sangat Ringan"}, {"t": "2026-03-28", "pd": 47.3, "ch": 0.0, "tf": 206, "sa": 28.4, "km": 82.0, "am": 5.0, "pj": 7.4, "imp": false, "kat": "Tidak Hujan"}, {"t": "2026-03-29", "pd": 55.9, "ch": 0.0, "tf": 213, "sa": 28.2, "km": 83.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2026-03-30", "pd": 48.3, "ch": 0.0, "tf": 207, "sa": 28.5, "km": 83.0, "am": 6.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2026-03-31", "pd": 50.1, "ch": 0.4, "tf": 517, "sa": 28.1, "km": 84.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Sangat Ringan"}, {"t": "2026-04-01", "pd": 53.2, "ch": 0.0, "tf": 206, "sa": 28.3, "km": 85.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2026-04-02", "pd": 47.5, "ch": 0.0, "tf": 202, "sa": 28.3, "km": 86.0, "am": 6.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2026-04-03", "pd": 48.2, "ch": 0.0, "tf": 198, "sa": 28.1, "km": 86.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2026-04-04", "pd": 40.4, "ch": 0.0, "tf": 193, "sa": 28.6, "km": 84.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2026-04-05", "pd": 52.9, "ch": 0.0, "tf": 208, "sa": 28.7, "km": 86.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2026-04-06", "pd": 41.8, "ch": 0.0, "tf": 203, "sa": 28.3, "km": 86.0, "am": 5.0, "pj": 7.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2026-04-07", "pd": 47.0, "ch": 0.0, "tf": 187, "sa": 27.8, "km": 85.0, "am": 5.0, "pj": 6.9, "imp": false, "kat": "Tidak Hujan"}, {"t": "2026-04-08", "pd": 42.9, "ch": 0.0, "tf": 198, "sa": 28.1, "km": 84.0, "am": 7.0, "pj": 7.4, "imp": false, "kat": "Tidak Hujan"}, {"t": "2026-04-09", "pd": 46.5, "ch": 10.8, "tf": 186, "sa": 27.5, "km": 88.0, "am": 5.0, "pj": 7.5, "imp": false, "kat": "Ringan"}, {"t": "2026-04-10", "pd": 48.7, "ch": 0.0, "tf": 195, "sa": 27.9, "km": 85.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2026-04-11", "pd": 38.6, "ch": 0.0, "tf": 197, "sa": 28.9, "km": 82.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2026-04-12", "pd": 53.7, "ch": 0.0, "tf": 202, "sa": 28.3, "km": 83.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2026-04-13", "pd": 38.7, "ch": 0.0, "tf": 192, "sa": 28.5, "km": 84.0, "am": 6.0, "pj": 8.0, "imp": true, "kat": "Tidak Hujan"}, {"t": "2026-04-14", "pd": 35.4, "ch": 0.0, "tf": 182, "sa": 28.8, "km": 76.0, "am": 7.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2026-04-15", "pd": 44.4, "ch": 0.2, "tf": 196, "sa": 27.9, "km": 82.0, "am": 6.0, "pj": 8.0, "imp": false, "kat": "Sangat Ringan"}, {"t": "2026-04-16", "pd": 35.9, "ch": 0.2, "tf": 192, "sa": 28.2, "km": 77.0, "am": 5.0, "pj": 8.0, "imp": true, "kat": "Sangat Ringan"}, {"t": "2026-04-17", "pd": 47.2, "ch": 0.0, "tf": 196, "sa": 27.7, "km": 80.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2026-04-18", "pd": 41.4, "ch": 0.3, "tf": 191, "sa": 27.9, "km": 81.0, "am": 6.0, "pj": 8.0, "imp": false, "kat": "Sangat Ringan"}, {"t": "2026-04-19", "pd": 48.2, "ch": 0.0, "tf": 200, "sa": 27.4, "km": 78.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2026-04-20", "pd": 41.8, "ch": 5.2, "tf": 190, "sa": 28.0, "km": 86.0, "am": 4.0, "pj": 8.0, "imp": false, "kat": "Ringan"}, {"t": "2026-04-21", "pd": 46.7, "ch": 16.8, "tf": 182, "sa": 26.4, "km": 95.0, "am": 4.0, "pj": 8.0, "imp": false, "kat": "Ringan"}, {"t": "2026-04-22", "pd": 44.0, "ch": 36.3, "tf": 191, "sa": 27.0, "km": 89.0, "am": 4.0, "pj": 0.7, "imp": false, "kat": "Sedang"}, {"t": "2026-04-23", "pd": 36.0, "ch": 0.0, "tf": 186, "sa": 27.1, "km": 87.0, "am": 4.0, "pj": 6.5, "imp": false, "kat": "Tidak Hujan"}, {"t": "2026-04-24", "pd": 45.9, "ch": 0.0, "tf": 194, "sa": 27.9, "km": 86.0, "am": 4.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2026-04-25", "pd": 43.5, "ch": 0.0, "tf": 186, "sa": 28.5, "km": 84.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2026-04-26", "pd": 45.7, "ch": 0.0, "tf": 197, "sa": 28.8, "km": 85.0, "am": 4.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2026-04-27", "pd": 45.2, "ch": 13.2, "tf": 186, "sa": 27.4, "km": 90.0, "am": 4.0, "pj": 8.0, "imp": false, "kat": "Ringan"}, {"t": "2026-04-28", "pd": 35.4, "ch": 9.2, "tf": 181, "sa": 27.6, "km": 87.0, "am": 5.0, "pj": 6.8, "imp": false, "kat": "Ringan"}, {"t": "2026-04-29", "pd": 47.6, "ch": 0.0, "tf": 190, "sa": 28.6, "km": 86.0, "am": 5.0, "pj": 7.6, "imp": false, "kat": "Tidak Hujan"}, {"t": "2026-04-30", "pd": 57.0, "ch": 9.5, "tf": 197, "sa": 28.0, "km": 87.0, "am": 5.0, "pj": 5.8, "imp": false, "kat": "Ringan"}, {"t": "2026-05-01", "pd": 52.1, "ch": 41.8, "tf": 197, "sa": 28.0, "km": 90.0, "am": 6.0, "pj": 6.5, "imp": false, "kat": "Sedang"}, {"t": "2026-05-02", "pd": 45.9, "ch": 5.2, "tf": 189, "sa": 27.8, "km": 84.0, "am": 5.0, "pj": 7.4, "imp": false, "kat": "Ringan"}, {"t": "2026-05-03", "pd": 49.5, "ch": 1.2, "tf": 202, "sa": 27.2, "km": 88.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Sangat Ringan"}, {"t": "2026-05-04", "pd": 51.0, "ch": 0.0, "tf": 195, "sa": 27.8, "km": 84.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2026-05-05", "pd": 39.2, "ch": 0.0, "tf": 177, "sa": 28.5, "km": 81.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2026-05-06", "pd": 36.6, "ch": 0.0, "tf": 194, "sa": 28.5, "km": 84.0, "am": 6.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2026-05-07", "pd": 38.9, "ch": 0.0, "tf": 188, "sa": 28.7, "km": 80.0, "am": 5.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2026-05-08", "pd": 41.9, "ch": 0.0, "tf": 194, "sa": 28.6, "km": 82.0, "am": 7.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2026-05-09", "pd": 39.7, "ch": 0.0, "tf": 180, "sa": 27.9, "km": 82.0, "am": 6.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2026-05-10", "pd": 41.6, "ch": 0.0, "tf": 193, "sa": 28.5, "km": 79.0, "am": 6.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2026-05-11", "pd": 38.7, "ch": 1.1, "tf": 183, "sa": 28.0, "km": 82.0, "am": 6.0, "pj": 8.0, "imp": false, "kat": "Sangat Ringan"}, {"t": "2026-05-12", "pd": 31.9, "ch": 0.0, "tf": 172, "sa": 29.0, "km": 82.0, "am": 6.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2026-05-13", "pd": 39.1, "ch": 0.0, "tf": 188, "sa": 29.1, "km": 84.0, "am": 6.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2026-05-14", "pd": 42.1, "ch": 0.4, "tf": 188, "sa": 29.2, "km": 83.0, "am": 6.0, "pj": 7.4, "imp": false, "kat": "Sangat Ringan"}, {"t": "2026-05-15", "pd": 40.3, "ch": 0.0, "tf": 193, "sa": 29.2, "km": 85.0, "am": 6.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2026-05-16", "pd": 41.7, "ch": 0.0, "tf": 180, "sa": 28.4, "km": 86.0, "am": 3.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2026-05-17", "pd": 55.6, "ch": 21.0, "tf": 200, "sa": 27.5, "km": 88.0, "am": 5.0, "pj": 0.3, "imp": false, "kat": "Sedang"}, {"t": "2026-05-18", "pd": 45.5, "ch": 0.0, "tf": 190, "sa": 26.8, "km": 87.0, "am": 4.0, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2026-05-19", "pd": 40.4, "ch": 4.5, "tf": 169, "sa": 26.9, "km": 87.5, "am": 3.6, "pj": 4.2, "imp": false, "kat": "Sangat Ringan"}, {"t": "2026-05-20", "pd": 35.8, "ch": 0.0, "tf": 190, "sa": 26.9, "km": 87.5, "am": 4.1, "pj": 7.8, "imp": false, "kat": "Tidak Hujan"}, {"t": "2026-05-21", "pd": 44.6, "ch": 0.0, "tf": 179, "sa": 27.9, "km": 85.2, "am": 3.6, "pj": 7.8, "imp": false, "kat": "Tidak Hujan"}, {"t": "2026-05-22", "pd": 51.1, "ch": 0.0, "tf": 195, "sa": 28.1, "km": 87.0, "am": 4.6, "pj": 7.5, "imp": false, "kat": "Tidak Hujan"}, {"t": "2026-05-23", "pd": 42.5, "ch": 0.0, "tf": 184, "sa": 26.8, "km": 92.2, "am": 3.6, "pj": 6.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2026-05-24", "pd": 51.0, "ch": 0.0, "tf": 198, "sa": 27.8, "km": 85.8, "am": 4.6, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2026-05-25", "pd": 40.3, "ch": 0.0, "tf": 188, "sa": 27.5, "km": 84.2, "am": 6.2, "pj": 7.5, "imp": false, "kat": "Tidak Hujan"}, {"t": "2026-05-26", "pd": 33.1, "ch": 0.0, "tf": 184, "sa": 28.0, "km": 80.5, "am": 6.2, "pj": 7.9, "imp": false, "kat": "Tidak Hujan"}, {"t": "2026-05-27", "pd": 39.2, "ch": 0.0, "tf": 196, "sa": 27.0, "km": 78.2, "am": 5.1, "pj": 7.7, "imp": true, "kat": "Tidak Hujan"}, {"t": "2026-05-28", "pd": 26.7, "ch": 0.0, "tf": 186, "sa": 27.5, "km": 68.2, "am": 4.6, "pj": 7.1, "imp": false, "kat": "Tidak Hujan"}, {"t": "2026-05-29", "pd": 23.8, "ch": 0.0, "tf": 190, "sa": 25.5, "km": 69.8, "am": 4.6, "pj": 8.0, "imp": false, "kat": "Tidak Hujan"}, {"t": "2026-05-30", "pd": 34.4, "ch": 0.0, "tf": 189, "sa": 25.5, "km": 69.8, "am": 4.6, "pj": 8.0, "imp": true, "kat": "Tidak Hujan"}, {"t": "2026-05-31", "pd": 48.7, "ch": 0.0, "tf": 201, "sa": 25.5, "km": 69.8, "am": 4.6, "pj": 8.0, "imp": true, "kat": "Tidak Hujan"}], "monthly": [{"m": "2025-03", "pd": 35.1, "tf": 175, "ch": 8.6}, {"m": "2025-04", "pd": 46.4, "tf": 207, "ch": 5.8}, {"m": "2025-05", "pd": 46.7, "tf": 206, "ch": 4.3}, {"m": "2025-06", "pd": 53.8, "tf": 208, "ch": 5.1}, {"m": "2025-07", "pd": 55.4, "tf": 210, "ch": 3.2}, {"m": "2025-08", "pd": 53.3, "tf": 207, "ch": 0.3}, {"m": "2025-09", "pd": 47.9, "tf": 206, "ch": 8.3}, {"m": "2025-10", "pd": 48.7, "tf": 204, "ch": 5.5}, {"m": "2025-11", "pd": 45.9, "tf": 198, "ch": 7.7}, {"m": "2025-12", "pd": 47.5, "tf": 209, "ch": 16.6}, {"m": "2026-01", "pd": 45.5, "tf": 215, "ch": 17.9}, {"m": "2026-02", "pd": 47.3, "tf": 204, "ch": 31.1}, {"m": "2026-03", "pd": 44.3, "tf": 209, "ch": 6.1}, {"m": "2026-04", "pd": 44.7, "tf": 194, "ch": 3.4}, {"m": "2026-05", "pd": 41.4, "tf": 189, "ch": 2.4}], "corr": [{"f": "total_flight", "r": 0.39, "g": "op"}, {"f": "suhu_max", "r": -0.373, "g": "cu"}, {"f": "suhu_avg", "r": -0.306, "g": "cu"}, {"f": "curah_hujan", "r": 0.127, "g": "cu"}, {"f": "angin_avg_ms", "r": 0.051, "g": "cu"}, {"f": "penyinaran_jam", "r": -0.048, "g": "cu"}, {"f": "kelembapan", "r": 0.038, "g": "cu"}, {"f": "angin_max_ms", "r": 0.016, "g": "cu"}], "katd": [{"k": "Tidak Hujan", "pd": 47.3, "n": 226}, {"k": "Sangat Ringan", "pd": 45.4, "n": 105}, {"k": "Ringan", "pd": 45.5, "n": 68}, {"k": "Sedang", "pd": 47.6, "n": 37}, {"k": "Lebat", "pd": 55.1, "n": 19}, {"k": "Sangat Lebat", "pd": 34.0, "n": 1}, {"k": "Ekstrem", "pd": 48.3, "n": 1}], "rules": [{"r": "suhu_min \u2264 avg \u2264 max", "p": 99.8}, {"r": "pct_ontime + pct_delay \u2248 100", "p": 100.0}, {"r": "early+ontime+delay \u2248 operated", "p": 100.0}, {"r": "operated \u2264 total_flight", "p": 100.0}, {"r": "kelembapan dalam 0\u2013100", "p": 100.0}], "arah": {"SE": 168, "W": 139, "E": 121, "NW": 9, "SW": 9, "S": 9, "NE": 2}, "kat": {"Tidak Hujan": 226, "Sangat Ringan": 105, "Ringan": 68, "Sedang": 37, "Lebat": 19, "Sangat Lebat": 1, "Ekstrem": 1}, "worst": [{"t": "25 Jun 2025", "pd": 67.3, "tf": 209, "ch": 3.6, "sa": 25.7, "kat": "Sangat Ringan"}, {"t": "20 Jun 2025", "pd": 66.5, "tf": 209, "ch": 0.0, "sa": 27.1, "kat": "Tidak Hujan"}, {"t": "28 Jun 2025", "pd": 65.9, "tf": 205, "ch": 0.0, "sa": 27.3, "kat": "Tidak Hujan"}, {"t": "25 Jul 2025", "pd": 65.7, "tf": 215, "ch": 0.0, "sa": 26.9, "kat": "Tidak Hujan"}, {"t": "19 Jun 2025", "pd": 64.2, "tf": 205, "ch": 0.0, "sa": 26.4, "kat": "Tidak Hujan"}], "stats": {"rows": 457, "cols": 21, "flights": 92617, "delay": 46.9, "cancel": 1480, "imp": 30, "imp_pct": 6.6, "ch_max": 216.7, "tf_day": 203}};
+</script>
+
+<script>
+/* ---------- palette ---------- */
+const TXT="#16243A",MUT="#516079",GRID="#DCE7F2",ACC="#1E6FD9",ACCL="#3B95F5",SUN="#F2890B",SUNL="#FBA23A",BLU="#1E6FD9",TEAL="#0E8C9B",GRN="#138a5a",AMB="#C9760A",ORG="#E2640F",PUR="#6D49C7",GOLD="#B6850E";
+Chart.defaults.color=MUT; Chart.defaults.borderColor=GRID;
+Chart.defaults.font.family="'Inter',sans-serif";
+const labels=DATA.daily.map(d=>d.t);
+const pd=DATA.daily.map(d=>d.pd);
+const tf=DATA.daily.map(d=>d.tf);
+function ma(a,w){return a.map((_,i)=>{if(i<w-1)return null;let s=0;for(let j=i-w+1;j<=i;j++)s+=a[j];return +(s/w).toFixed(1);});}
+
+/* ---------- RAW: status penerbangan (doughnut) ---------- */
+new Chart(document.getElementById('cRawAir'),{type:'doughnut',data:{labels:['Delay','On time','Early','Dibatalkan'],datasets:[
+  {data:[43144,40368,7625,1480],backgroundColor:[SUN,BLU,TEAL,'#CBD5E1'],borderColor:'#fff',borderWidth:3}
+]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{boxWidth:11,font:{size:11},padding:8}}},cutout:'58%'}});
+
+/* ---------- RAW: distribusi suhu/hujan (bar variabel) ---------- */
+new Chart(document.getElementById('cRawWx'),{type:'bar',data:{labels:['Suhu avg','Kelembapan','Hujan','Angin maks','Penyinaran'],datasets:[
+  {label:'Min',data:[24.3,65,0,3,0],backgroundColor:'rgba(14,124,134,.35)',borderRadius:4},
+  {label:'Rata',data:[27.6,80.3,8.3,5.9,6.4],backgroundColor:TEAL,borderRadius:4},
+  {label:'Max',data:[30.4,95,216.7,15,8],backgroundColor:'rgba(14,124,134,.6)',borderRadius:4}
+]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{boxWidth:11,font:{size:10},padding:7}}},
+  scales:{x:{ticks:{font:{size:9.5}},grid:{display:false}},y:{type:'logarithmic',grid:{color:GRID},ticks:{font:{size:9}}}}}});
+
+/* ---------- 1. Trend ---------- */
+new Chart(document.getElementById('cTrend'),{data:{labels,datasets:[
+  {type:'bar',label:'Penerbangan/hari',data:tf,backgroundColor:'rgba(140,150,170,.22)',yAxisID:'y1',order:3,barPercentage:1,categoryPercentage:1},
+  {type:'line',label:'% Delay harian',data:pd,borderColor:'rgba(242,137,11,.35)',backgroundColor:'transparent',borderWidth:1,pointRadius:0,tension:.2,yAxisID:'y',order:2},
+  {type:'line',label:'Rata-rata 14 hari',data:ma(pd,14),borderColor:SUN,backgroundColor:'transparent',borderWidth:2.6,pointRadius:0,tension:.3,yAxisID:'y',order:1}
+]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+  plugins:{legend:{labels:{boxWidth:14,usePointStyle:true}}},
+  scales:{x:{ticks:{maxTicksLimit:12,maxRotation:0},grid:{display:false}},
+    y:{position:'left',title:{display:true,text:'% delay'},grid:{color:GRID}},
+    y1:{position:'right',title:{display:true,text:'penerbangan'},grid:{display:false},suggestedMax:300}}}});
+
+/* ---------- 2. Combo monthly ---------- */
+new Chart(document.getElementById('cCombo'),{data:{labels:DATA.monthly.map(m=>m.m),datasets:[
+  {type:'bar',label:'Rata penerbangan/hari',data:DATA.monthly.map(m=>m.tf),backgroundColor:'rgba(37,99,235,.5)',borderRadius:6,yAxisID:'y1',order:2},
+  {type:'line',label:'% Delay rata-rata',data:DATA.monthly.map(m=>m.pd),borderColor:SUN,backgroundColor:SUNL,borderWidth:3,pointRadius:4,pointBackgroundColor:SUN,tension:.35,yAxisID:'y',order:1}
+]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+  plugins:{legend:{labels:{boxWidth:14,usePointStyle:true}}},
+  scales:{x:{ticks:{maxRotation:55,minRotation:45,font:{size:10}},grid:{display:false}},
+    y:{position:'left',title:{display:true,text:'% delay'},grid:{color:GRID}},
+    y1:{position:'right',title:{display:true,text:'penerbangan/hari'},grid:{display:false}}}}});
+
+/* ---------- 3. Correlation ---------- */
+new Chart(document.getElementById('cCorr'),{type:'bar',data:{labels:DATA.corr.map(c=>c.f),datasets:[
+  {label:'r terhadap pct_delay',data:DATA.corr.map(c=>c.r),
+   backgroundColor:DATA.corr.map(c=>c.g==='op'?'rgba(242,137,11,.9)':'rgba(30,111,217,.72)'),borderRadius:5}
+]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+  scales:{x:{suggestedMin:-0.5,suggestedMax:0.5,grid:{color:GRID}},y:{grid:{display:false},ticks:{font:{size:11}}}}}});
+
+/* ---------- 4. Delay per kategori hujan ---------- */
+new Chart(document.getElementById('cKatDelay'),{type:'bar',data:{labels:DATA.katd.map(k=>k.k),datasets:[
+  {label:'Rata % delay',data:DATA.katd.map(k=>k.pd),
+   backgroundColor:['#CBD5E1','#CDE2F7','#8FC0EC','#4A95E0','#1E6FD9','#F2890B','#D2730A'],borderRadius:6}
+]},options:{responsive:true,maintainAspectRatio:false,
+  plugins:{legend:{display:false},tooltip:{callbacks:{afterLabel:(c)=>'n = '+DATA.katd[c.dataIndex].n+' hari'}}},
+  scales:{x:{ticks:{font:{size:10},maxRotation:30},grid:{display:false}},y:{title:{display:true,text:'% delay'},grid:{color:GRID}}}}});
+
+/* ---------- 5. Scatter ---------- */
+const axisName={ch:'Curah hujan (mm)',sa:'Suhu rata-rata (\u00B0C)',km:'Kelembapan (%)',am:'Angin maks (m/s)',tf:'Total penerbangan'};
+let scatChart;
+function drawScatter(k){
+  const ds=DATA.daily.map(d=>({x:d[k],y:d.pd}));
+  if(scatChart)scatChart.destroy();
+  scatChart=new Chart(document.getElementById('cScatter'),{type:'scatter',data:{datasets:[
+    {label:'Hari',data:ds,backgroundColor:'rgba(14,124,134,.5)',pointRadius:3}
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+    scales:{x:{title:{display:true,text:axisName[k]},grid:{color:GRID}},y:{title:{display:true,text:'% delay'},grid:{color:GRID}}}}});
+}
+drawScatter('ch');
+document.querySelectorAll('#scatSel button').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('#scatSel button').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on'); drawScatter(b.dataset.k);
+}));
+
+/* ---------- 6. Doughnut kategori ---------- */
+const katL=Object.keys(DATA.kat),katV=Object.values(DATA.kat);
+new Chart(document.getElementById('cKat'),{type:'doughnut',data:{labels:katL,datasets:[
+  {data:katV,backgroundColor:['#CBD5E1',TEAL,BLU,AMB,ORG,SUN,PUR],borderColor:'#fff',borderWidth:3}
+]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{boxWidth:12,font:{size:11},padding:9}}}}});
+
+/* ---------- 7. Arah angin ---------- */
+const arL=Object.keys(DATA.arah),arV=Object.values(DATA.arah);
+new Chart(document.getElementById('cArah'),{type:'bar',data:{labels:arL,datasets:[
+  {label:'Jumlah hari',data:arV,backgroundColor:GRN,borderRadius:6}
+]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+  scales:{x:{grid:{color:GRID}},y:{grid:{display:false}}}}});
+
+/* ---------- rules ---------- */
+document.getElementById('rulesBox').innerHTML=DATA.rules.map(r=>`
+  <div class="rule"><span class="rname">${r.r}</span>
+  <span class="rbar"><i style="width:${r.p}%"></i></span>
+  <span class="rpct">${r.p.toString().replace('.',',')}%</span></div>`).join('');
+
+/* ---------- worst days ---------- */
+document.getElementById('worstBody').innerHTML=DATA.worst.map(w=>`
+  <tr><td>${w.t}</td><td style="color:${ACC};font-weight:700">${w.pd.toString().replace('.',',')}%</td>
+  <td>${w.tf}</td><td>${w.ch.toString().replace('.',',')} mm</td>
+  <td>${w.sa.toString().replace('.',',')}\u00B0C</td><td>${w.kat}</td></tr>`).join('');
+
+/* ---------- MULTI-PAGE NAVIGATION ---------- */
+const nav=document.getElementById('nav');
+const hero=document.getElementById('hero');
+const navAs=[...document.querySelectorAll('.nav-links a')];
+const pages=[...document.querySelectorAll('.page')];
+const order=['overview','findings','rawdata','analysis8v','analytics','quality','conclusion'];
+
+function setSolid(){ nav.classList.toggle('solid',window.scrollY>40); }
+window.addEventListener('scroll',setSolid,{passive:true});
+
+function resizeCharts(){
+  if(window.Chart&&Chart.instances){ Object.values(Chart.instances).forEach(c=>{try{c.resize();}catch(e){}}); }
+}
+
+function go(id){
+  if(id==='home'){
+    pages.forEach(p=>p.classList.remove('active'));
+    hero.style.display='flex';
+    nav.classList.add('dark-mode');
+    window.scrollTo({top:0,behavior:'instant'});
+    setSolid();
+    return;
+  }
+  hero.style.display='none';
+  nav.classList.remove('dark-mode');
+  pages.forEach(p=>p.classList.toggle('active',p.id==='page-'+id));
+  navAs.forEach(a=>a.classList.toggle('active',a.getAttribute('data-go')===id));
+  window.scrollTo({top:0,behavior:'instant'});
+  setSolid();
+  // re-trigger reveal + resize charts in this page
+  const cur=document.getElementById('page-'+id);
+  if(cur){
+    cur.querySelectorAll('.reveal').forEach(el=>el.classList.add('in'));
+    requestAnimationFrame(()=>requestAnimationFrame(resizeCharts));
+  }
+}
+
+/* delegasi semua tombol/link ber-data-go */
+document.addEventListener('click',e=>{
+  const t=e.target.closest('[data-go]');
+  if(!t)return;
+  e.preventDefault();
+  go(t.getAttribute('data-go'));
+  const nl=document.getElementById('navLinks');
+  if(window.innerWidth<=640&&nl){nl.style.display='none';}
+});
+
+/* burger */
+document.getElementById('burger').addEventListener('click',()=>{
+  const nl=document.getElementById('navLinks');
+  const open=nl.style.display==='flex';
+  nl.style.display=open?'none':'flex';
+  if(!open){nl.style.cssText='display:flex;position:absolute;top:66px;left:0;right:0;flex-direction:column;background:rgba(242,246,251,.98);backdrop-filter:blur(14px);padding:14px 26px;gap:4px;box-shadow:0 12px 30px rgba(0,0,0,.12);';}
+});
+
+/* mulai di beranda (hero) */
+nav.classList.add('dark-mode'); setSolid();
+
+/* ---------- reveal ---------- */
+const io=new IntersectionObserver((es)=>{es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}})},{threshold:.12});
+document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+</script>
+</body>
+</html>
